@@ -1,6 +1,7 @@
 PRELUDE = {
     use super::lex::Token;
     use super::ast::*;
+
     fn push<T>(mut x: Vec<T>, v: T) -> Vec<T> {
         x.push(v);
         x
@@ -15,12 +16,12 @@ token_Ident = String
 token_Literal = String
 
 Grammar: { Spec }
-  | Configs Rules { Spec { rules: v1, configs: v0 } }
-  | Rules { Spec { rules: v0, configs: Vec::new() } }
+  | Configs Rules { Spec { rules: v1.into_iter().rev().collect(), configs: v0 } }
+  | Rules { Spec { rules: v0.into_iter().rev().collect(), configs: Vec::new() } }
 
 Configs: { Vec<(String, String)> }
   | Configs  Config { push(v0, v1) }
-  | Config { [v0] }
+  | Config { vec![v0] }
 
 Config: { (String, String) }
   | Ident Equals Ident { (v0, v2) }

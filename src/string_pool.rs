@@ -25,6 +25,18 @@ impl Pool {
         Id(self.inner.len() - 1)
     }
 
+    pub fn get_reverse<S>(&self, string: S) -> Option<Id>
+    where
+        S: AsRef<str>,
+    {
+        let string = string.as_ref();
+        self.inner
+            .iter()
+            .enumerate()
+            .find(|x| x.1 == string)
+            .map(|x| Id(x.0))
+    }
+
     pub fn get(&self, id: Id) -> &str {
         &self.inner[id.0]
     }

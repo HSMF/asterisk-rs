@@ -59,7 +59,7 @@ fn main() -> anyhow::Result<()> {
     // "B" => T "(" N "A" @ "hello world";
     // );
 
-    let mut grammar = grammar!(
+    let grammar = grammar!(
         A:
         A => N "B" T "Plus" N "A"  @ "v0 + v2";
         A => N "B" @ "v0";
@@ -71,8 +71,6 @@ fn main() -> anyhow::Result<()> {
 
     println!("{grammar}");
 
-    let a = grammar.pool_mut().add("S0".to_owned());
-    let _graph = Graph::make(&grammar, grammar.initial(a).into_iter().collect());
     // use std::io::Write;
     // let mut f = std::fs::File::create("output/tmp.dot").unwrap();
     // writeln!(f, "{}", graph.print(grammar.pool_mut())).unwrap();
@@ -130,6 +128,11 @@ fn main() -> anyhow::Result<()> {
 
     let grammar = std::fs::read_to_string(cli.grammar).expect("failed to read grammar");
     let (grammar, visitor) = parse_string(&grammar)?;
+    let a = grammar
+        .pool()
+        .get_reverse("S0")
+        .expect("S0 should be in grammar");
+    println!();
     let graph = Graph::make(&grammar, grammar.initial(a).into_iter().collect());
 
     if cli.emit_dot {

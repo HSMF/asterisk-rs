@@ -24,7 +24,7 @@ fn own_grammar() -> Grammar {
     crate::grammar!(
         Grammar:
         Grammar => N "Configs" N "Rules" @ "Spec { rules: v1, configs: v0 }";
-        Grammar => N "Rules" @ "Spec { rules: v0, configs: Vec::new() }";
+        Grammar => N "Rules" @ "Spec { rules: v0.into_iter().rev().collect(), configs: Vec::new() }";
         Configs => N "Configs" N "Config" @ "{let mut v0 = v0; v0.push(v1); v0}";
         Configs => N "Config" @ "vec![v0]";
         Config => T "Ident" T "Equals" T "Ident" @ "(v0, v2)";
