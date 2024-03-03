@@ -57,14 +57,6 @@ impl Rust {
     }
 }
 
-fn parse<I>(it: I)
-where
-    I: Iterator<Item = i32>,
-{
-    let mut it = it.peekable();
-    it.next();
-}
-
 impl Visitor for Rust {
     fn before_enter(
         &self,

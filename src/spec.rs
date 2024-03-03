@@ -1,6 +1,8 @@
 use std::{collections::HashMap, fs::File, io::Write};
 
+use ansi_term::Color;
 use anyhow::{bail, Context};
+use itertools::Itertools;
 use logos::Logos;
 
 use crate::{
@@ -74,7 +76,7 @@ pub fn bootstrap(filename: &str) -> anyhow::Result<()> {
         writeln!(f, "{}", graph.print(grammar.pool_mut())).unwrap();
 
         eprintln!("spec: running graphviz");
-        run_graphviz("output/tmp.dot")?;
+        run_graphviz(&"output/tmp.dot")?;
     }
 
     let table = match Table::from_graph(&graph) {
@@ -95,7 +97,7 @@ pub fn bootstrap(filename: &str) -> anyhow::Result<()> {
     writeln!(f, "{}", Render::new(&visitor, &table, &grammar))
         .context("failed to write to file")?;
 
-    visitor.format(filename);
+    visitor.format(filename)?;
 
     Ok(())
 }
@@ -103,7 +105,69 @@ pub fn bootstrap(filename: &str) -> anyhow::Result<()> {
 pub fn parse_string(s: &str) -> anyhow::Result<(Grammar, Box<dyn Frontend>)> {
     let toks = Token::lexer(s).map(|x| x.expect("lexing error"));
 
-    let spec = parser::parse(toks)?;
+    let spec = match parser::parse(toks) {
+        Ok(v) => v,
+        Err(e) => match e {
+            parser::Error::Msg(m) => bail!("{}", m),
+            parser::Error::UnexpectedToken {
+                expected,
+                received,
+                state_id,
+                remaining_input,
+            } => {
+                let all_input = Token::lexer(s)
+                    .map(|x| x.expect("lexing error"))
+                    .collect_vec();
+                use std::fmt::Write;
+                let mut error_message = String::new();
+                writeln!(
+                    error_message,
+                    "expected one of {{{}}}",
+                    expected
+                        .into_iter()
+                        .map(|tok| tok.map(|x| format!("{x:?}")).unwrap_or("EOF".to_owned()))
+                        .format(", ")
+                )?;
+                writeln!(
+                    error_message,
+                    "but received {} in state {state_id}",
+                    received
+                        .clone()
+                        .map(|x| format!("{:?}", x))
+                        .unwrap_or("EOF".to_owned())
+                )?;
+                writeln!(error_message, "relevant context:")?;
+                let pos = all_input.len() - remaining_input.len() - 1;
+                let start = pos.saturating_sub(5);
+                let len = pos - start;
+                write!(
+                    error_message,
+                    "{} ",
+                    all_input
+                        .iter()
+                        .skip(start)
+                        .take(len)
+                        .map(|x| format!("{}", Color::Yellow.paint(format!("{x:?}"))))
+                        .format(", ")
+                )?;
+                write!(
+                    error_message,
+                    "{} ",
+                    Color::Red.paint(format!("{:?}", &received))
+                )?;
+                writeln!(
+                    error_message,
+                    "{}",
+                    remaining_input
+                        .into_iter()
+                        .take(10)
+                        .map(|x| format!("{}", Color::Yellow.paint(format!("{x:?}"))))
+                        .format(", ")
+                )?;
+                bail!(error_message)
+            }
+        },
+    };
 
     let mut builder = Grammar::builder();
 
@@ -165,6 +229,7 @@ pub fn parse_string(s: &str) -> anyhow::Result<(Grammar, Box<dyn Frontend>)> {
 
     let grammar = builder.finish(entry_point.to_owned());
     println!("{grammar}");
+    println!("{}", own_grammar());
 
     let visitor: Box<dyn Frontend> = match language.as_str() {
         "ocaml" => Box::new(OcamlVisitor::new(

@@ -8,6 +8,7 @@ PRELUDE = {
 }
 TARGET = rust
 entry = Grammar
+token_type = Token
 
 # denotes that the token `Literal` carries data of type `String`
 token_Ident = String
@@ -17,11 +18,11 @@ Grammar: { Spec }
   | Configs Rules { Spec { rules: v1, configs: v0 } }
   | Rules { Spec { rules: v0, configs: Vec::new() } }
 
-Configs: { Vec<(string, string)> }
+Configs: { Vec<(String, String)> }
   | Configs  Config { push(v0, v1) }
   | Config { [v0] }
 
-Config: { (string, string) }
+Config: { (String, String) }
   | Ident Equals Ident { (v0, v2) }
   | Ident Equals Literal { (v0, v2) }
 

@@ -36,30 +36,30 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Clone, Copy)]
 enum State {
+    State8,
+    State1,
     State13,
-    State23,
-    State20,
     State24,
-    State12,
-    State18,
+    State21,
+    State17,
     State3,
     State6,
     State4,
-    State11,
-    State16,
     State19,
-    State8,
-    State14,
-    State15,
-    State21,
-    State1,
-    State22,
-    State2,
-    State17,
     State10,
     State7,
-    State5,
+    State16,
+    State2,
+    State23,
+    State22,
+    State14,
+    State15,
     State9,
+    State12,
+    State11,
+    State18,
+    State20,
+    State5,
 }
 
 #[allow(dead_code)]
@@ -130,47 +130,9 @@ where
         TokenType::NonTerm(NonTerm::S0),
         StackValue::None,
     );
-    fn goto_Config(state: State) -> Result<State> {
-        match state {
-            State::State1 => Ok(State::State2),
-            State::State3 => Ok(State::State17),
-            _ => Err(Error::msg(
-                "failed to match in Config. this is probably a bug",
-            )),
-        }
-    }
-    fn goto_Rules(state: State) -> Result<State> {
-        match state {
-            State::State1 => Ok(State::State22),
-            State::State3 => Ok(State::State18),
-            State::State19 => Ok(State::State20),
-            _ => Err(Error::msg(
-                "failed to match in Rules. this is probably a bug",
-            )),
-        }
-    }
-    fn goto_CaseList(state: State) -> Result<State> {
-        match state {
-            State::State9 => Ok(State::State10),
-            State::State11 => Ok(State::State12),
-            _ => Err(Error::msg(
-                "failed to match in CaseList. this is probably a bug",
-            )),
-        }
-    }
-    fn goto_Rule(state: State) -> Result<State> {
-        match state {
-            State::State1 => Ok(State::State19),
-            State::State3 => Ok(State::State19),
-            State::State19 => Ok(State::State19),
-            _ => Err(Error::msg(
-                "failed to match in Rule. this is probably a bug",
-            )),
-        }
-    }
     fn goto_Idents(state: State) -> Result<State> {
         match state {
-            State::State13 => Ok(State::State14),
+            State::State8 => Ok(State::State9),
             _ => Err(Error::msg(
                 "failed to match in Idents. this is probably a bug",
             )),
@@ -178,26 +140,64 @@ where
     }
     fn goto_Grammar(state: State) -> Result<State> {
         match state {
-            State::State1 => Ok(State::State23),
+            State::State1 => Ok(State::State21),
             _ => Err(Error::msg(
                 "failed to match in Grammar. this is probably a bug",
             )),
         }
     }
+    fn goto_CaseList(state: State) -> Result<State> {
+        match state {
+            State::State7 => Ok(State::State14),
+            State::State12 => Ok(State::State13),
+            _ => Err(Error::msg(
+                "failed to match in CaseList. this is probably a bug",
+            )),
+        }
+    }
     fn goto_Case(state: State) -> Result<State> {
         match state {
-            State::State9 => Ok(State::State11),
-            State::State11 => Ok(State::State11),
+            State::State7 => Ok(State::State12),
+            State::State12 => Ok(State::State12),
             _ => Err(Error::msg(
                 "failed to match in Case. this is probably a bug",
             )),
         }
     }
+    fn goto_Config(state: State) -> Result<State> {
+        match state {
+            State::State1 => Ok(State::State24),
+            State::State2 => Ok(State::State20),
+            _ => Err(Error::msg(
+                "failed to match in Config. this is probably a bug",
+            )),
+        }
+    }
+    fn goto_Rule(state: State) -> Result<State> {
+        match state {
+            State::State1 => Ok(State::State4),
+            State::State2 => Ok(State::State4),
+            State::State4 => Ok(State::State4),
+            _ => Err(Error::msg(
+                "failed to match in Rule. this is probably a bug",
+            )),
+        }
+    }
     fn goto_Configs(state: State) -> Result<State> {
         match state {
-            State::State1 => Ok(State::State3),
+            State::State1 => Ok(State::State2),
             _ => Err(Error::msg(
                 "failed to match in Configs. this is probably a bug",
+            )),
+        }
+    }
+    fn goto_Rules(state: State) -> Result<State> {
+        match state {
+            State::State1 => Ok(State::State23),
+            State::State2 => Ok(State::State3),
+            State::State4 => Ok(State::State15),
+            _ => Err(Error::msg(
+                "failed to match in Rules. this is probably a bug",
             )),
         }
     }
@@ -205,6 +205,15 @@ where
     loop {
         match state {
             State::State1 => match tokens.peek() {
+                Some(Token::Ident(_)) => {
+                    let head = tokens.next().unwrap();
+                    let Token::Ident(value) = head else {
+                        unreachable!()
+                    };
+                    let head = Token::Ident(Default::default());
+                    state = State::State16;
+                    stack.push(state, TokenType::Term(head), StackValue::Term_Ident(value));
+                }
                 None => {
                     let value = { Vec::new() };
                     let &(before, _, _) = stack.peek()?;
@@ -215,15 +224,6 @@ where
                         TokenType::NonTerm(NonTerm::Rules),
                         StackValue::NonTerm_Rules(value),
                     );
-                }
-                Some(Token::Ident(_)) => {
-                    let head = tokens.next().unwrap();
-                    let Token::Ident(value) = head else {
-                        unreachable!()
-                    };
-                    let head = Token::Ident(Default::default());
-                    state = State::State4;
-                    stack.push(state, TokenType::Term(head), StackValue::Term_Ident(value));
                 }
                 _ => {
                     return Err(Error::UnexpectedToken {
@@ -237,50 +237,24 @@ where
 
             State::State2 => match tokens.peek() {
                 None => {
-                    let v0 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::Config),
-                                StackValue::NonTerm_Config(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg("expected token Config to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = { vec![v0] };
+                    let value = { Vec::new() };
                     let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Configs(before)?;
+                    let goto = goto_Rules(before)?;
                     state = goto;
                     stack.push(
                         goto,
-                        TokenType::NonTerm(NonTerm::Configs),
-                        StackValue::NonTerm_Configs(value),
+                        TokenType::NonTerm(NonTerm::Rules),
+                        StackValue::NonTerm_Rules(value),
                     );
                 }
                 Some(Token::Ident(_)) => {
-                    let v0 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::Config),
-                                StackValue::NonTerm_Config(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg("expected token Config to be on the stack"))
-                            }
-                        }
+                    let head = tokens.next().unwrap();
+                    let Token::Ident(value) = head else {
+                        unreachable!()
                     };
-                    let value = { vec![v0] };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Configs(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Configs),
-                        StackValue::NonTerm_Configs(value),
-                    );
+                    let head = Token::Ident(Default::default());
+                    state = State::State16;
+                    stack.push(state, TokenType::Term(head), StackValue::Term_Ident(value));
                 }
                 _ => {
                     return Err(Error::UnexpectedToken {
@@ -293,1024 +267,6 @@ where
             },
 
             State::State3 => match tokens.peek() {
-                Some(Token::Ident(_)) => {
-                    let head = tokens.next().unwrap();
-                    let Token::Ident(value) = head else {
-                        unreachable!()
-                    };
-                    let head = Token::Ident(Default::default());
-                    state = State::State4;
-                    stack.push(state, TokenType::Term(head), StackValue::Term_Ident(value));
-                }
-                None => {
-                    let value = { Vec::new() };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Rules(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Rules),
-                        StackValue::NonTerm_Rules(value),
-                    );
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![None, Some(Token::Ident(Default::default()))],
-                        received: tokens.next(),
-                        state_id: 3,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State4 => match tokens.peek() {
-                Some(Token::Equals) => {
-                    let head = tokens.next().unwrap();
-                    state = State::State5;
-                    stack.push(state, TokenType::Term(head), StackValue::None);
-                }
-                Some(Token::Colon) => {
-                    let head = tokens.next().unwrap();
-                    state = State::State8;
-                    stack.push(state, TokenType::Term(head), StackValue::None);
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![Some(Token::Colon), Some(Token::Equals)],
-                        received: tokens.next(),
-                        state_id: 4,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State5 => match tokens.peek() {
-                Some(Token::Literal(_)) => {
-                    let head = tokens.next().unwrap();
-                    let Token::Literal(value) = head else {
-                        unreachable!()
-                    };
-                    let head = Token::Literal(Default::default());
-                    state = State::State7;
-                    stack.push(
-                        state,
-                        TokenType::Term(head),
-                        StackValue::Term_Literal(value),
-                    );
-                }
-                Some(Token::Ident(_)) => {
-                    let head = tokens.next().unwrap();
-                    let Token::Ident(value) = head else {
-                        unreachable!()
-                    };
-                    let head = Token::Ident(Default::default());
-                    state = State::State6;
-                    stack.push(state, TokenType::Term(head), StackValue::Term_Ident(value));
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![
-                            Some(Token::Ident(Default::default())),
-                            Some(Token::Literal(Default::default())),
-                        ],
-                        received: tokens.next(),
-                        state_id: 5,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State6 => match tokens.peek() {
-                None => {
-                    let v2 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
-                            _ => {
-                                return Err(Error::msg("expected token `Ident` to be on the stack"))
-                            }
-                        }
-                    };
-                    let v1 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Equals), StackValue::None) => (),
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token `Equals` to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
-                            _ => {
-                                return Err(Error::msg("expected token `Ident` to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = { (v0, v2) };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Config(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Config),
-                        StackValue::NonTerm_Config(value),
-                    );
-                }
-                Some(Token::Ident(_)) => {
-                    let v2 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
-                            _ => {
-                                return Err(Error::msg("expected token `Ident` to be on the stack"))
-                            }
-                        }
-                    };
-                    let v1 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Equals), StackValue::None) => (),
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token `Equals` to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
-                            _ => {
-                                return Err(Error::msg("expected token `Ident` to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = { (v0, v2) };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Config(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Config),
-                        StackValue::NonTerm_Config(value),
-                    );
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![None, Some(Token::Ident(Default::default()))],
-                        received: tokens.next(),
-                        state_id: 6,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State7 => match tokens.peek() {
-                None => {
-                    let v2 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::Term(Token::Literal(_)),
-                                StackValue::Term_Literal(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token `Literal` to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v1 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Equals), StackValue::None) => (),
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token `Equals` to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
-                            _ => {
-                                return Err(Error::msg("expected token `Ident` to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = { (v0, v2) };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Config(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Config),
-                        StackValue::NonTerm_Config(value),
-                    );
-                }
-                Some(Token::Ident(_)) => {
-                    let v2 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::Term(Token::Literal(_)),
-                                StackValue::Term_Literal(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token `Literal` to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v1 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Equals), StackValue::None) => (),
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token `Equals` to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
-                            _ => {
-                                return Err(Error::msg("expected token `Ident` to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = { (v0, v2) };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Config(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Config),
-                        StackValue::NonTerm_Config(value),
-                    );
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![None, Some(Token::Ident(Default::default()))],
-                        received: tokens.next(),
-                        state_id: 7,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State8 => match tokens.peek() {
-                Some(Token::Literal(_)) => {
-                    let head = tokens.next().unwrap();
-                    let Token::Literal(value) = head else {
-                        unreachable!()
-                    };
-                    let head = Token::Literal(Default::default());
-                    state = State::State9;
-                    stack.push(
-                        state,
-                        TokenType::Term(head),
-                        StackValue::Term_Literal(value),
-                    );
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![Some(Token::Literal(Default::default()))],
-                        received: tokens.next(),
-                        state_id: 8,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State9 => match tokens.peek() {
-                None => {
-                    let value = { Vec::new() };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_CaseList(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::CaseList),
-                        StackValue::NonTerm_CaseList(value),
-                    );
-                }
-                Some(Token::Ident(_)) => {
-                    let value = { Vec::new() };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_CaseList(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::CaseList),
-                        StackValue::NonTerm_CaseList(value),
-                    );
-                }
-                Some(Token::Pipe) => {
-                    let head = tokens.next().unwrap();
-                    state = State::State13;
-                    stack.push(state, TokenType::Term(head), StackValue::None);
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![
-                            Some(Token::Pipe),
-                            Some(Token::Ident(Default::default())),
-                            None,
-                        ],
-                        received: tokens.next(),
-                        state_id: 9,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State10 => match tokens.peek() {
-                None => {
-                    let v3 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::CaseList),
-                                StackValue::NonTerm_CaseList(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token CaseList to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v2 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::Term(Token::Literal(_)),
-                                StackValue::Term_Literal(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token `Literal` to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v1 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Colon), StackValue::None) => (),
-                            _ => {
-                                return Err(Error::msg("expected token `Colon` to be on the stack"))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
-                            _ => {
-                                return Err(Error::msg("expected token `Ident` to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = {
-                        Rule {
-                            name: v0,
-                            typ: v2,
-                            expansions: v3,
-                        }
-                    };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Rule(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Rule),
-                        StackValue::NonTerm_Rule(value),
-                    );
-                }
-                Some(Token::Ident(_)) => {
-                    let v3 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::CaseList),
-                                StackValue::NonTerm_CaseList(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token CaseList to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v2 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::Term(Token::Literal(_)),
-                                StackValue::Term_Literal(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token `Literal` to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v1 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Colon), StackValue::None) => (),
-                            _ => {
-                                return Err(Error::msg("expected token `Colon` to be on the stack"))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
-                            _ => {
-                                return Err(Error::msg("expected token `Ident` to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = {
-                        Rule {
-                            name: v0,
-                            typ: v2,
-                            expansions: v3,
-                        }
-                    };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Rule(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Rule),
-                        StackValue::NonTerm_Rule(value),
-                    );
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![None, Some(Token::Ident(Default::default()))],
-                        received: tokens.next(),
-                        state_id: 10,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State11 => match tokens.peek() {
-                Some(Token::Pipe) => {
-                    let head = tokens.next().unwrap();
-                    state = State::State13;
-                    stack.push(state, TokenType::Term(head), StackValue::None);
-                }
-                Some(Token::Ident(_)) => {
-                    let value = { Vec::new() };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_CaseList(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::CaseList),
-                        StackValue::NonTerm_CaseList(value),
-                    );
-                }
-                None => {
-                    let value = { Vec::new() };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_CaseList(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::CaseList),
-                        StackValue::NonTerm_CaseList(value),
-                    );
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![
-                            None,
-                            Some(Token::Ident(Default::default())),
-                            Some(Token::Pipe),
-                        ],
-                        received: tokens.next(),
-                        state_id: 11,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State12 => match tokens.peek() {
-                Some(Token::Ident(_)) => {
-                    let v1 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::CaseList),
-                                StackValue::NonTerm_CaseList(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token CaseList to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (_, TokenType::NonTerm(NonTerm::Case), StackValue::NonTerm_Case(v)) => {
-                                v
-                            }
-                            _ => return Err(Error::msg("expected token Case to be on the stack")),
-                        }
-                    };
-                    let value = {
-                        {
-                            let mut v = v1;
-                            v.push(v0);
-                            v
-                        }
-                    };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_CaseList(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::CaseList),
-                        StackValue::NonTerm_CaseList(value),
-                    );
-                }
-                None => {
-                    let v1 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::CaseList),
-                                StackValue::NonTerm_CaseList(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token CaseList to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (_, TokenType::NonTerm(NonTerm::Case), StackValue::NonTerm_Case(v)) => {
-                                v
-                            }
-                            _ => return Err(Error::msg("expected token Case to be on the stack")),
-                        }
-                    };
-                    let value = {
-                        {
-                            let mut v = v1;
-                            v.push(v0);
-                            v
-                        }
-                    };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_CaseList(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::CaseList),
-                        StackValue::NonTerm_CaseList(value),
-                    );
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![None, Some(Token::Ident(Default::default()))],
-                        received: tokens.next(),
-                        state_id: 12,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State13 => match tokens.peek() {
-                Some(Token::Ident(_)) => {
-                    let value = { Vec::new() };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Idents(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Idents),
-                        StackValue::NonTerm_Idents(value),
-                    );
-                }
-                Some(Token::Literal(_)) => {
-                    let value = { Vec::new() };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Idents(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Idents),
-                        StackValue::NonTerm_Idents(value),
-                    );
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![
-                            Some(Token::Ident(Default::default())),
-                            Some(Token::Literal(Default::default())),
-                        ],
-                        received: tokens.next(),
-                        state_id: 13,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State14 => match tokens.peek() {
-                Some(Token::Ident(_)) => {
-                    let head = tokens.next().unwrap();
-                    let Token::Ident(value) = head else {
-                        unreachable!()
-                    };
-                    let head = Token::Ident(Default::default());
-                    state = State::State15;
-                    stack.push(state, TokenType::Term(head), StackValue::Term_Ident(value));
-                }
-                Some(Token::Literal(_)) => {
-                    let head = tokens.next().unwrap();
-                    let Token::Literal(value) = head else {
-                        unreachable!()
-                    };
-                    let head = Token::Literal(Default::default());
-                    state = State::State16;
-                    stack.push(
-                        state,
-                        TokenType::Term(head),
-                        StackValue::Term_Literal(value),
-                    );
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![
-                            Some(Token::Literal(Default::default())),
-                            Some(Token::Ident(Default::default())),
-                        ],
-                        received: tokens.next(),
-                        state_id: 14,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State15 => match tokens.peek() {
-                Some(Token::Ident(_)) => {
-                    let v1 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
-                            _ => {
-                                return Err(Error::msg("expected token `Ident` to be on the stack"))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::Idents),
-                                StackValue::NonTerm_Idents(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg("expected token Idents to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = {
-                        {
-                            let mut v = v0;
-                            v.push(v1);
-                            v
-                        }
-                    };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Idents(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Idents),
-                        StackValue::NonTerm_Idents(value),
-                    );
-                }
-                Some(Token::Literal(_)) => {
-                    let v1 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
-                            _ => {
-                                return Err(Error::msg("expected token `Ident` to be on the stack"))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::Idents),
-                                StackValue::NonTerm_Idents(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg("expected token Idents to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = {
-                        {
-                            let mut v = v0;
-                            v.push(v1);
-                            v
-                        }
-                    };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Idents(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Idents),
-                        StackValue::NonTerm_Idents(value),
-                    );
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![
-                            Some(Token::Ident(Default::default())),
-                            Some(Token::Literal(Default::default())),
-                        ],
-                        received: tokens.next(),
-                        state_id: 15,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State16 => match tokens.peek() {
-                Some(Token::Pipe) => {
-                    let v2 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::Term(Token::Literal(_)),
-                                StackValue::Term_Literal(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token `Literal` to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v1 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::Idents),
-                                StackValue::NonTerm_Idents(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg("expected token Idents to be on the stack"))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Pipe), StackValue::None) => (),
-                            _ => {
-                                return Err(Error::msg("expected token `Pipe` to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = {
-                        Expansion {
-                            tokens: v1,
-                            code: v2,
-                        }
-                    };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Case(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Case),
-                        StackValue::NonTerm_Case(value),
-                    );
-                }
-                Some(Token::Ident(_)) => {
-                    let v2 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::Term(Token::Literal(_)),
-                                StackValue::Term_Literal(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token `Literal` to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v1 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::Idents),
-                                StackValue::NonTerm_Idents(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg("expected token Idents to be on the stack"))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Pipe), StackValue::None) => (),
-                            _ => {
-                                return Err(Error::msg("expected token `Pipe` to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = {
-                        Expansion {
-                            tokens: v1,
-                            code: v2,
-                        }
-                    };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Case(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Case),
-                        StackValue::NonTerm_Case(value),
-                    );
-                }
-                None => {
-                    let v2 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::Term(Token::Literal(_)),
-                                StackValue::Term_Literal(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg(
-                                    "expected token `Literal` to be on the stack",
-                                ))
-                            }
-                        }
-                    };
-                    let v1 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::Idents),
-                                StackValue::NonTerm_Idents(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg("expected token Idents to be on the stack"))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (_, TokenType::Term(Token::Pipe), StackValue::None) => (),
-                            _ => {
-                                return Err(Error::msg("expected token `Pipe` to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = {
-                        Expansion {
-                            tokens: v1,
-                            code: v2,
-                        }
-                    };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Case(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Case),
-                        StackValue::NonTerm_Case(value),
-                    );
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![
-                            Some(Token::Ident(Default::default())),
-                            Some(Token::Pipe),
-                            None,
-                        ],
-                        received: tokens.next(),
-                        state_id: 16,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State17 => match tokens.peek() {
-                None => {
-                    let v1 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::Config),
-                                StackValue::NonTerm_Config(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg("expected token Config to be on the stack"))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::Configs),
-                                StackValue::NonTerm_Configs(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg("expected token Configs to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = {
-                        {
-                            let mut v0 = v0;
-                            v0.push(v1);
-                            v0
-                        }
-                    };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Configs(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Configs),
-                        StackValue::NonTerm_Configs(value),
-                    );
-                }
-                Some(Token::Ident(_)) => {
-                    let v1 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::Config),
-                                StackValue::NonTerm_Config(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg("expected token Config to be on the stack"))
-                            }
-                        }
-                    };
-                    let v0 = {
-                        match stack.pop()? {
-                            (
-                                _,
-                                TokenType::NonTerm(NonTerm::Configs),
-                                StackValue::NonTerm_Configs(v),
-                            ) => v,
-                            _ => {
-                                return Err(Error::msg("expected token Configs to be on the stack"))
-                            }
-                        }
-                    };
-                    let value = {
-                        {
-                            let mut v0 = v0;
-                            v0.push(v1);
-                            v0
-                        }
-                    };
-                    let &(before, _, _) = stack.peek()?;
-                    let goto = goto_Configs(before)?;
-                    state = goto;
-                    stack.push(
-                        goto,
-                        TokenType::NonTerm(NonTerm::Configs),
-                        StackValue::NonTerm_Configs(value),
-                    );
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![None, Some(Token::Ident(Default::default()))],
-                        received: tokens.next(),
-                        state_id: 17,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State18 => match tokens.peek() {
                 None => {
                     let v1 = {
                         match stack.pop()? {
@@ -1353,22 +309,13 @@ where
                     return Err(Error::UnexpectedToken {
                         expected: vec![None],
                         received: tokens.next(),
-                        state_id: 18,
+                        state_id: 3,
                         remaining_input: tokens.collect(),
                     })
                 }
             },
 
-            State::State19 => match tokens.peek() {
-                Some(Token::Ident(_)) => {
-                    let head = tokens.next().unwrap();
-                    let Token::Ident(value) = head else {
-                        unreachable!()
-                    };
-                    let head = Token::Ident(Default::default());
-                    state = State::State21;
-                    stack.push(state, TokenType::Term(head), StackValue::Term_Ident(value));
-                }
+            State::State4 => match tokens.peek() {
                 None => {
                     let value = { Vec::new() };
                     let &(before, _, _) = stack.peek()?;
@@ -1380,17 +327,697 @@ where
                         StackValue::NonTerm_Rules(value),
                     );
                 }
+                Some(Token::Ident(_)) => {
+                    let head = tokens.next().unwrap();
+                    let Token::Ident(value) = head else {
+                        unreachable!()
+                    };
+                    let head = Token::Ident(Default::default());
+                    state = State::State5;
+                    stack.push(state, TokenType::Term(head), StackValue::Term_Ident(value));
+                }
                 _ => {
                     return Err(Error::UnexpectedToken {
-                        expected: vec![Some(Token::Ident(Default::default())), None],
+                        expected: vec![None, Some(Token::Ident(Default::default()))],
                         received: tokens.next(),
-                        state_id: 19,
+                        state_id: 4,
                         remaining_input: tokens.collect(),
                     })
                 }
             },
 
-            State::State20 => match tokens.peek() {
+            State::State5 => match tokens.peek() {
+                Some(Token::Colon) => {
+                    let head = tokens.next().unwrap();
+                    state = State::State6;
+                    stack.push(state, TokenType::Term(head), StackValue::None);
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![Some(Token::Colon)],
+                        received: tokens.next(),
+                        state_id: 5,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State6 => match tokens.peek() {
+                Some(Token::Literal(_)) => {
+                    let head = tokens.next().unwrap();
+                    let Token::Literal(value) = head else {
+                        unreachable!()
+                    };
+                    let head = Token::Literal(Default::default());
+                    state = State::State7;
+                    stack.push(
+                        state,
+                        TokenType::Term(head),
+                        StackValue::Term_Literal(value),
+                    );
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![Some(Token::Literal(Default::default()))],
+                        received: tokens.next(),
+                        state_id: 6,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State7 => match tokens.peek() {
+                Some(Token::Pipe) => {
+                    let head = tokens.next().unwrap();
+                    state = State::State8;
+                    stack.push(state, TokenType::Term(head), StackValue::None);
+                }
+                Some(Token::Ident(_)) => {
+                    let value = { Vec::new() };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_CaseList(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::CaseList),
+                        StackValue::NonTerm_CaseList(value),
+                    );
+                }
+                None => {
+                    let value = { Vec::new() };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_CaseList(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::CaseList),
+                        StackValue::NonTerm_CaseList(value),
+                    );
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![
+                            None,
+                            Some(Token::Pipe),
+                            Some(Token::Ident(Default::default())),
+                        ],
+                        received: tokens.next(),
+                        state_id: 7,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State8 => match tokens.peek() {
+                Some(Token::Literal(_)) => {
+                    let value = { Vec::new() };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Idents(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Idents),
+                        StackValue::NonTerm_Idents(value),
+                    );
+                }
+                Some(Token::Ident(_)) => {
+                    let value = { Vec::new() };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Idents(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Idents),
+                        StackValue::NonTerm_Idents(value),
+                    );
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![
+                            Some(Token::Literal(Default::default())),
+                            Some(Token::Ident(Default::default())),
+                        ],
+                        received: tokens.next(),
+                        state_id: 8,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State9 => match tokens.peek() {
+                Some(Token::Ident(_)) => {
+                    let head = tokens.next().unwrap();
+                    let Token::Ident(value) = head else {
+                        unreachable!()
+                    };
+                    let head = Token::Ident(Default::default());
+                    state = State::State10;
+                    stack.push(state, TokenType::Term(head), StackValue::Term_Ident(value));
+                }
+                Some(Token::Literal(_)) => {
+                    let head = tokens.next().unwrap();
+                    let Token::Literal(value) = head else {
+                        unreachable!()
+                    };
+                    let head = Token::Literal(Default::default());
+                    state = State::State11;
+                    stack.push(
+                        state,
+                        TokenType::Term(head),
+                        StackValue::Term_Literal(value),
+                    );
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![
+                            Some(Token::Literal(Default::default())),
+                            Some(Token::Ident(Default::default())),
+                        ],
+                        received: tokens.next(),
+                        state_id: 9,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State10 => match tokens.peek() {
+                Some(Token::Literal(_)) => {
+                    let v1 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
+                            _ => {
+                                return Err(Error::msg("expected token `Ident` to be on the stack"))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::Idents),
+                                StackValue::NonTerm_Idents(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg("expected token Idents to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = {
+                        {
+                            let mut v = v0;
+                            v.push(v1);
+                            v
+                        }
+                    };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Idents(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Idents),
+                        StackValue::NonTerm_Idents(value),
+                    );
+                }
+                Some(Token::Ident(_)) => {
+                    let v1 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
+                            _ => {
+                                return Err(Error::msg("expected token `Ident` to be on the stack"))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::Idents),
+                                StackValue::NonTerm_Idents(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg("expected token Idents to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = {
+                        {
+                            let mut v = v0;
+                            v.push(v1);
+                            v
+                        }
+                    };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Idents(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Idents),
+                        StackValue::NonTerm_Idents(value),
+                    );
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![
+                            Some(Token::Ident(Default::default())),
+                            Some(Token::Literal(Default::default())),
+                        ],
+                        received: tokens.next(),
+                        state_id: 10,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State11 => match tokens.peek() {
+                None => {
+                    let v2 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::Term(Token::Literal(_)),
+                                StackValue::Term_Literal(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token `Literal` to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v1 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::Idents),
+                                StackValue::NonTerm_Idents(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg("expected token Idents to be on the stack"))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Pipe), StackValue::None) => (),
+                            _ => {
+                                return Err(Error::msg("expected token `Pipe` to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = {
+                        Expansion {
+                            tokens: v1,
+                            code: v2,
+                        }
+                    };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Case(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Case),
+                        StackValue::NonTerm_Case(value),
+                    );
+                }
+                Some(Token::Ident(_)) => {
+                    let v2 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::Term(Token::Literal(_)),
+                                StackValue::Term_Literal(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token `Literal` to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v1 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::Idents),
+                                StackValue::NonTerm_Idents(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg("expected token Idents to be on the stack"))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Pipe), StackValue::None) => (),
+                            _ => {
+                                return Err(Error::msg("expected token `Pipe` to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = {
+                        Expansion {
+                            tokens: v1,
+                            code: v2,
+                        }
+                    };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Case(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Case),
+                        StackValue::NonTerm_Case(value),
+                    );
+                }
+                Some(Token::Pipe) => {
+                    let v2 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::Term(Token::Literal(_)),
+                                StackValue::Term_Literal(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token `Literal` to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v1 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::Idents),
+                                StackValue::NonTerm_Idents(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg("expected token Idents to be on the stack"))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Pipe), StackValue::None) => (),
+                            _ => {
+                                return Err(Error::msg("expected token `Pipe` to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = {
+                        Expansion {
+                            tokens: v1,
+                            code: v2,
+                        }
+                    };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Case(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Case),
+                        StackValue::NonTerm_Case(value),
+                    );
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![
+                            Some(Token::Ident(Default::default())),
+                            None,
+                            Some(Token::Pipe),
+                        ],
+                        received: tokens.next(),
+                        state_id: 11,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State12 => match tokens.peek() {
+                None => {
+                    let value = { Vec::new() };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_CaseList(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::CaseList),
+                        StackValue::NonTerm_CaseList(value),
+                    );
+                }
+                Some(Token::Ident(_)) => {
+                    let value = { Vec::new() };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_CaseList(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::CaseList),
+                        StackValue::NonTerm_CaseList(value),
+                    );
+                }
+                Some(Token::Pipe) => {
+                    let head = tokens.next().unwrap();
+                    state = State::State8;
+                    stack.push(state, TokenType::Term(head), StackValue::None);
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![
+                            Some(Token::Ident(Default::default())),
+                            None,
+                            Some(Token::Pipe),
+                        ],
+                        received: tokens.next(),
+                        state_id: 12,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State13 => match tokens.peek() {
+                Some(Token::Ident(_)) => {
+                    let v1 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::CaseList),
+                                StackValue::NonTerm_CaseList(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token CaseList to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (_, TokenType::NonTerm(NonTerm::Case), StackValue::NonTerm_Case(v)) => {
+                                v
+                            }
+                            _ => return Err(Error::msg("expected token Case to be on the stack")),
+                        }
+                    };
+                    let value = {
+                        {
+                            let mut v = v1;
+                            v.push(v0);
+                            v
+                        }
+                    };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_CaseList(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::CaseList),
+                        StackValue::NonTerm_CaseList(value),
+                    );
+                }
+                None => {
+                    let v1 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::CaseList),
+                                StackValue::NonTerm_CaseList(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token CaseList to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (_, TokenType::NonTerm(NonTerm::Case), StackValue::NonTerm_Case(v)) => {
+                                v
+                            }
+                            _ => return Err(Error::msg("expected token Case to be on the stack")),
+                        }
+                    };
+                    let value = {
+                        {
+                            let mut v = v1;
+                            v.push(v0);
+                            v
+                        }
+                    };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_CaseList(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::CaseList),
+                        StackValue::NonTerm_CaseList(value),
+                    );
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![Some(Token::Ident(Default::default())), None],
+                        received: tokens.next(),
+                        state_id: 13,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State14 => match tokens.peek() {
+                Some(Token::Ident(_)) => {
+                    let v3 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::CaseList),
+                                StackValue::NonTerm_CaseList(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token CaseList to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v2 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::Term(Token::Literal(_)),
+                                StackValue::Term_Literal(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token `Literal` to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v1 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Colon), StackValue::None) => (),
+                            _ => {
+                                return Err(Error::msg("expected token `Colon` to be on the stack"))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
+                            _ => {
+                                return Err(Error::msg("expected token `Ident` to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = {
+                        Rule {
+                            name: v0,
+                            typ: v2,
+                            expansions: v3,
+                        }
+                    };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Rule(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Rule),
+                        StackValue::NonTerm_Rule(value),
+                    );
+                }
+                None => {
+                    let v3 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::CaseList),
+                                StackValue::NonTerm_CaseList(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token CaseList to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v2 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::Term(Token::Literal(_)),
+                                StackValue::Term_Literal(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token `Literal` to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v1 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Colon), StackValue::None) => (),
+                            _ => {
+                                return Err(Error::msg("expected token `Colon` to be on the stack"))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
+                            _ => {
+                                return Err(Error::msg("expected token `Ident` to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = {
+                        Rule {
+                            name: v0,
+                            typ: v2,
+                            expansions: v3,
+                        }
+                    };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Rule(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Rule),
+                        StackValue::NonTerm_Rule(value),
+                    );
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![None, Some(Token::Ident(Default::default()))],
+                        received: tokens.next(),
+                        state_id: 14,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State15 => match tokens.peek() {
                 None => {
                     let v1 = {
                         match stack.pop()? {
@@ -1430,6 +1057,338 @@ where
                     return Err(Error::UnexpectedToken {
                         expected: vec![None],
                         received: tokens.next(),
+                        state_id: 15,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State16 => match tokens.peek() {
+                Some(Token::Colon) => {
+                    let head = tokens.next().unwrap();
+                    state = State::State6;
+                    stack.push(state, TokenType::Term(head), StackValue::None);
+                }
+                Some(Token::Equals) => {
+                    let head = tokens.next().unwrap();
+                    state = State::State17;
+                    stack.push(state, TokenType::Term(head), StackValue::None);
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![Some(Token::Equals), Some(Token::Colon)],
+                        received: tokens.next(),
+                        state_id: 16,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State17 => match tokens.peek() {
+                Some(Token::Literal(_)) => {
+                    let head = tokens.next().unwrap();
+                    let Token::Literal(value) = head else {
+                        unreachable!()
+                    };
+                    let head = Token::Literal(Default::default());
+                    state = State::State18;
+                    stack.push(
+                        state,
+                        TokenType::Term(head),
+                        StackValue::Term_Literal(value),
+                    );
+                }
+                Some(Token::Ident(_)) => {
+                    let head = tokens.next().unwrap();
+                    let Token::Ident(value) = head else {
+                        unreachable!()
+                    };
+                    let head = Token::Ident(Default::default());
+                    state = State::State19;
+                    stack.push(state, TokenType::Term(head), StackValue::Term_Ident(value));
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![
+                            Some(Token::Ident(Default::default())),
+                            Some(Token::Literal(Default::default())),
+                        ],
+                        received: tokens.next(),
+                        state_id: 17,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State18 => match tokens.peek() {
+                Some(Token::Ident(_)) => {
+                    let v2 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::Term(Token::Literal(_)),
+                                StackValue::Term_Literal(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token `Literal` to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v1 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Equals), StackValue::None) => (),
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token `Equals` to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
+                            _ => {
+                                return Err(Error::msg("expected token `Ident` to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = { (v0, v2) };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Config(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Config),
+                        StackValue::NonTerm_Config(value),
+                    );
+                }
+                None => {
+                    let v2 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::Term(Token::Literal(_)),
+                                StackValue::Term_Literal(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token `Literal` to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v1 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Equals), StackValue::None) => (),
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token `Equals` to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
+                            _ => {
+                                return Err(Error::msg("expected token `Ident` to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = { (v0, v2) };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Config(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Config),
+                        StackValue::NonTerm_Config(value),
+                    );
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![None, Some(Token::Ident(Default::default()))],
+                        received: tokens.next(),
+                        state_id: 18,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State19 => match tokens.peek() {
+                Some(Token::Ident(_)) => {
+                    let v2 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
+                            _ => {
+                                return Err(Error::msg("expected token `Ident` to be on the stack"))
+                            }
+                        }
+                    };
+                    let v1 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Equals), StackValue::None) => (),
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token `Equals` to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
+                            _ => {
+                                return Err(Error::msg("expected token `Ident` to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = { (v0, v2) };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Config(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Config),
+                        StackValue::NonTerm_Config(value),
+                    );
+                }
+                None => {
+                    let v2 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
+                            _ => {
+                                return Err(Error::msg("expected token `Ident` to be on the stack"))
+                            }
+                        }
+                    };
+                    let v1 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Equals), StackValue::None) => (),
+                            _ => {
+                                return Err(Error::msg(
+                                    "expected token `Equals` to be on the stack",
+                                ))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (_, TokenType::Term(Token::Ident(_)), StackValue::Term_Ident(v)) => v,
+                            _ => {
+                                return Err(Error::msg("expected token `Ident` to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = { (v0, v2) };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Config(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Config),
+                        StackValue::NonTerm_Config(value),
+                    );
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![Some(Token::Ident(Default::default())), None],
+                        received: tokens.next(),
+                        state_id: 19,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State20 => match tokens.peek() {
+                None => {
+                    let v1 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::Config),
+                                StackValue::NonTerm_Config(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg("expected token Config to be on the stack"))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::Configs),
+                                StackValue::NonTerm_Configs(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg("expected token Configs to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = {
+                        {
+                            let mut v0 = v0;
+                            v0.push(v1);
+                            v0
+                        }
+                    };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Configs(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Configs),
+                        StackValue::NonTerm_Configs(value),
+                    );
+                }
+                Some(Token::Ident(_)) => {
+                    let v1 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::Config),
+                                StackValue::NonTerm_Config(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg("expected token Config to be on the stack"))
+                            }
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::Configs),
+                                StackValue::NonTerm_Configs(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg("expected token Configs to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = {
+                        {
+                            let mut v0 = v0;
+                            v0.push(v1);
+                            v0
+                        }
+                    };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Configs(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Configs),
+                        StackValue::NonTerm_Configs(value),
+                    );
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![Some(Token::Ident(Default::default())), None],
+                        received: tokens.next(),
                         state_id: 20,
                         remaining_input: tokens.collect(),
                     })
@@ -1437,14 +1396,13 @@ where
             },
 
             State::State21 => match tokens.peek() {
-                Some(Token::Colon) => {
-                    let head = tokens.next().unwrap();
-                    state = State::State8;
-                    stack.push(state, TokenType::Term(head), StackValue::None);
+                None => {
+                    state = State::State22;
+                    stack.push(state, TokenType::TermEof, StackValue::None);
                 }
                 _ => {
                     return Err(Error::UnexpectedToken {
-                        expected: vec![Some(Token::Colon)],
+                        expected: vec![None],
                         received: tokens.next(),
                         state_id: 21,
                         remaining_input: tokens.collect(),
@@ -1453,6 +1411,38 @@ where
             },
 
             State::State22 => match tokens.peek() {
+                None => {
+                    let v1 = {
+                        match stack.pop()? {
+                            (_, TokenType::TermEof, StackValue::None) => (),
+                            _ => return Err(Error::msg("expected token ＄ to be on the stack")),
+                        }
+                    };
+                    let v0 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::Grammar),
+                                StackValue::NonTerm_Grammar(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg("expected token Grammar to be on the stack"))
+                            }
+                        }
+                    };
+                    return Ok(v0);
+                }
+                _ => {
+                    return Err(Error::UnexpectedToken {
+                        expected: vec![None],
+                        received: tokens.next(),
+                        state_id: 22,
+                        remaining_input: tokens.collect(),
+                    })
+                }
+            },
+
+            State::State23 => match tokens.peek() {
                 None => {
                     let v0 = {
                         match stack.pop()? {
@@ -1483,21 +1473,6 @@ where
                     return Err(Error::UnexpectedToken {
                         expected: vec![None],
                         received: tokens.next(),
-                        state_id: 22,
-                        remaining_input: tokens.collect(),
-                    })
-                }
-            },
-
-            State::State23 => match tokens.peek() {
-                None => {
-                    state = State::State24;
-                    stack.push(state, TokenType::TermEof, StackValue::None);
-                }
-                _ => {
-                    return Err(Error::UnexpectedToken {
-                        expected: vec![None],
-                        received: tokens.next(),
                         state_id: 23,
                         remaining_input: tokens.collect(),
                     })
@@ -1505,30 +1480,55 @@ where
             },
 
             State::State24 => match tokens.peek() {
-                None => {
-                    let v1 = {
-                        match stack.pop()? {
-                            (_, TokenType::TermEof, StackValue::None) => (),
-                            _ => return Err(Error::msg("expected token ＄ to be on the stack")),
-                        }
-                    };
+                Some(Token::Ident(_)) => {
                     let v0 = {
                         match stack.pop()? {
                             (
                                 _,
-                                TokenType::NonTerm(NonTerm::Grammar),
-                                StackValue::NonTerm_Grammar(v),
+                                TokenType::NonTerm(NonTerm::Config),
+                                StackValue::NonTerm_Config(v),
                             ) => v,
                             _ => {
-                                return Err(Error::msg("expected token Grammar to be on the stack"))
+                                return Err(Error::msg("expected token Config to be on the stack"))
                             }
                         }
                     };
-                    return Ok(v0);
+                    let value = { vec![v0] };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Configs(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Configs),
+                        StackValue::NonTerm_Configs(value),
+                    );
+                }
+                None => {
+                    let v0 = {
+                        match stack.pop()? {
+                            (
+                                _,
+                                TokenType::NonTerm(NonTerm::Config),
+                                StackValue::NonTerm_Config(v),
+                            ) => v,
+                            _ => {
+                                return Err(Error::msg("expected token Config to be on the stack"))
+                            }
+                        }
+                    };
+                    let value = { vec![v0] };
+                    let &(before, _, _) = stack.peek()?;
+                    let goto = goto_Configs(before)?;
+                    state = goto;
+                    stack.push(
+                        goto,
+                        TokenType::NonTerm(NonTerm::Configs),
+                        StackValue::NonTerm_Configs(value),
+                    );
                 }
                 _ => {
                     return Err(Error::UnexpectedToken {
-                        expected: vec![None],
+                        expected: vec![Some(Token::Ident(Default::default())), None],
                         received: tokens.next(),
                         state_id: 24,
                         remaining_input: tokens.collect(),

@@ -1,7 +1,7 @@
-use std::io::Write;
 use std::path::PathBuf;
+use std::{io::Write, path::Path};
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use clap::Parser;
 use grammar::Grammar;
 
@@ -33,14 +33,17 @@ struct Cli {
     grammar: String,
 }
 
-pub fn run_graphviz(path: &str) -> anyhow::Result<()> {
-    let output = PathBuf::from(path).with_extension("svg");
+pub fn run_graphviz<P>(path: &P) -> anyhow::Result<()>
+where
+    P: AsRef<Path>,
+{
+    let output = PathBuf::from(path.as_ref()).with_extension("svg");
     let mut handle = std::process::Command::new("dot")
         .arg("-Tsvg")
         .arg("-Gfontname=monospace")
         .arg("-Efontname=monospace")
         .arg("-Nfontname=monospace")
-        .arg(path)
+        .arg(path.as_ref())
         .arg("-o")
         .arg(output)
         .spawn()
@@ -128,6 +131,19 @@ fn main() -> anyhow::Result<()> {
     let grammar = std::fs::read_to_string(cli.grammar).expect("failed to read grammar");
     let (grammar, visitor) = parse_string(&grammar)?;
     let graph = Graph::make(&grammar, grammar.initial(a).into_iter().collect());
+
+    if cli.emit_dot {
+        let output_dir = cli
+            .output_dir
+            .ok_or(anyhow!("output dir must be set to emit graphviz"))?;
+        let mut p = PathBuf::from(output_dir);
+        p.push("dfa.dot");
+        let mut f = std::fs::File::create(&p).unwrap();
+        writeln!(f, "{}", graph.print(grammar.pool())).unwrap();
+
+        run_graphviz(&p).context("failed to run graphviz")?;
+    }
+
     let table = Table::from_graph(&graph).expect("could construct table");
 
     if let Some(output) = cli.output {
