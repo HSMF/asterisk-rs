@@ -1,0 +1,46 @@
+PRELUDE = {
+    open Lex
+    open Ast
+}
+TARGET = ocaml
+entry = Grammar
+
+# denotes that the token `Literal` carries data of type string
+token_Ident = string
+token_Literal = string
+
+Grammar: { spec }
+  | Configs Rules {{
+        spec_configs = v0
+      ; spec_rules = v1
+      }}
+  | Rules {{
+        spec_configs = []
+      ; spec_rules = v0
+      }}
+
+Configs: { (string * string) list }
+  | Configs  Config { v1 :: v0 }
+  | Config { [v0] }
+
+Config: { string * string }
+  | Ident Equals Ident { v0, v2 }
+  | Ident Equals Literal { v0, v2 }
+
+Rules: { rule list }
+  | Rule Rules { v0 :: v1 }
+  | { [] }
+
+Rule: { rule }
+  | Ident Colon Literal CaseList { (v0, v2, v3) }
+
+CaseList: { (string list * string) list }
+  | Case CaseList { v0 :: v1 }
+  | { [] }
+
+Case: { string list * string }
+  | Pipe Idents Literal { v1, v2 }
+
+Idents: { string list }
+  | Ident Idents { v0 :: v1 }
+  | { [] }
