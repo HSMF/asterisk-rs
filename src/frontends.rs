@@ -98,7 +98,7 @@ impl Display for Render<'_> {
             grammar: self.grammar,
         };
         let v = &self.v;
-        let all_states: Vec<_> = self.table.0.keys().copied().collect();
+        let all_states: Vec<_> = self.table.0.keys().copied().sorted().collect();
         v.before_enter(&ctx, f, all_states.as_slice())?;
         let mut gotos = HashMap::new();
         for (node_id, entry) in &self.table.0 {
@@ -111,7 +111,7 @@ impl Display for Render<'_> {
                     .or_insert_with(|| HashMap::from([(*node_id, goto)]));
             }
         }
-        for (symbol, goto) in gotos {
+        for (symbol, goto) in gotos.into_iter().sorted_by_key(|x| x.0) {
             v.visit_goto(&ctx, f, symbol, &mut goto.into_iter().sorted())?;
         }
 
@@ -120,7 +120,7 @@ impl Display for Render<'_> {
         for (&node_id, entry) in self.table.0.iter().sorted_by_key(|x| x.0) {
             v.enter_state(&ctx, f, node_id)?;
 
-            for (&tok, action) in &entry.actions {
+            for (&tok, action) in entry.actions.iter().sorted() {
                 v.enter_match(&ctx, f, node_id, tok)?;
                 match action {
                     Action::Reduce(rule, expansion) => {
