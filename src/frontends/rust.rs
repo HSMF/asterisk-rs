@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
+use anyhow::Context;
 use itertools::Itertools;
 
 use crate::generator::Uid;
 
-use super::Visitor;
+use super::{Format, Visitor};
 
 pub struct Rust {
     prelude: String,
@@ -14,13 +15,15 @@ pub struct Rust {
     entry_rule: String,
     use_default_for_token: bool,
 }
-
-pub fn format_src(s: &str) {
-    let mut handle = std::process::Command::new("rustfmt")
-        .arg(s)
-        .spawn()
-        .expect("could spawn rustfmt");
-    handle.wait().expect("could not wait for rustfmt");
+impl Format for Rust {
+    fn format(&self, path: &str) -> anyhow::Result<()> {
+        let mut handle = std::process::Command::new("rustfmt")
+            .arg(path)
+            .spawn()
+            .context("could not spawn rustfmt")?;
+        handle.wait().context("could not wait for rustfmt")?;
+        Ok(())
+    }
 }
 
 impl Rust {
@@ -94,7 +97,17 @@ impl Visitor for Rust {
                     state_id: usize,
                     remaining_input: Vec<{token_type}> 
                 }}
-            }}"#,
+            }}
+
+
+            impl std::fmt::Display for Error {{
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {{
+                    write!(f, "{{self:?}}")
+                }}
+            }}
+
+            impl std::error::Error for Error {{}}
+            "#,
             if self.use_default_for_token {
                 token_type
             } else {
@@ -239,7 +252,7 @@ impl Visitor for Rust {
         Ok(())
     }
 
-    fn begin_parse_loop(&self, ctx: &super::Ctx, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn begin_parse_loop(&self, _ctx: &super::Ctx, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         writeln!(
             f,
             r#"
@@ -249,7 +262,7 @@ impl Visitor for Rust {
         Ok(())
     }
 
-    fn end_parse_loop(&self, ctx: &super::Ctx, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn end_parse_loop(&self, _ctx: &super::Ctx, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         writeln!(f, "}} }}")?;
         Ok(())
     }
@@ -319,10 +332,10 @@ impl Visitor for Rust {
 
     fn leave_match(
         &self,
-        ctx: &super::Ctx,
+        _ctx: &super::Ctx,
         f: &mut std::fmt::Formatter,
-        state: crate::generator::Uid,
-        token: crate::grammar::Token,
+        _state: crate::generator::Uid,
+        _token: crate::grammar::Token,
     ) -> std::fmt::Result {
         writeln!(f, "}}")?;
         Ok(())
@@ -345,6 +358,11 @@ impl Visitor for Rust {
                     f,
                     "let {token_type}::{name}(value) = head else {{ unreachable!() }}; "
                 )?;
+                assert!(
+                    self.use_default_for_token,
+                    "not sure yet how to handle non defaultable tokens"
+                );
+                writeln!(f, "let head = {token_type}::{name}(Default::default());")?;
             }
         }
         writeln!(f, "state = State::State{next_state};")?;
@@ -375,8 +393,8 @@ impl Visitor for Rust {
         &self,
         ctx: &super::Ctx,
         f: &mut std::fmt::Formatter,
-        state: crate::generator::Uid,
-        token: crate::grammar::Token,
+        _state: crate::generator::Uid,
+        _token: crate::grammar::Token,
         rule: crate::string_pool::Id,
         expansion: &[crate::grammar::Token],
     ) -> std::fmt::Result {
@@ -496,13 +514,13 @@ impl Visitor for Rust {
         ctx: &super::Ctx,
         f: &mut std::fmt::Formatter,
         symbol: crate::string_pool::Id,
-        gotos: impl Iterator<Item = (Uid, Uid)>,
+        gotos: &mut dyn Iterator<Item = (Uid, Uid)>,
     ) -> std::fmt::Result {
         let pool = ctx.grammar.pool();
         let name = pool.get(symbol);
         writeln!(f, "fn goto_{name}(state: State) -> Result<State> {{")?;
         writeln!(f, "match state {{")?;
-        for (from, to) in gotos {
+        for (from, to) in gotos.into_iter() {
             writeln!(f, "State::State{from} => Ok(State::State{to}),")?;
         }
         writeln!(

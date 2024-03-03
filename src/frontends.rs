@@ -74,20 +74,25 @@ pub trait Visitor {
         ctx: &Ctx,
         f: &mut Formatter,
         symbol: Id,
-        gotos: impl Iterator<Item = (Uid, Uid)>,
+        gotos: &mut dyn Iterator<Item = (Uid, Uid)>,
     ) -> Result;
 }
 
-pub struct Render<'a, V> {
-    table: &'a Table,
-    grammar: &'a Grammar,
-    v: V,
+pub trait Format {
+    fn format(&self, path: &str) -> anyhow::Result<()>;
 }
 
-impl<V> Display for Render<'_, V>
-where
-    V: Visitor,
-{
+pub trait Frontend: Format + Visitor {}
+
+impl<F> Frontend for F where F: Format + Visitor {}
+
+pub struct Render<'a> {
+    table: &'a Table,
+    grammar: &'a Grammar,
+    v: &'a dyn Visitor,
+}
+
+impl Display for Render<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let ctx = Ctx {
             grammar: self.grammar,
@@ -107,7 +112,7 @@ where
             }
         }
         for (symbol, goto) in gotos {
-            v.visit_goto(&ctx, f, symbol, goto.into_iter().sorted())?;
+            v.visit_goto(&ctx, f, symbol, &mut goto.into_iter().sorted())?;
         }
 
         v.begin_parse_loop(&ctx, f)?;
@@ -146,11 +151,88 @@ where
     }
 }
 
-impl<'a, V> Render<'a, V>
-where
-    V: Visitor,
-{
-    pub fn new(v: V, table: &'a Table, grammar: &'a Grammar) -> Self {
+impl<'a> Render<'a> {
+    pub fn new(v: &'a dyn Visitor, table: &'a Table, grammar: &'a Grammar) -> Self {
         Render { v, table, grammar }
+    }
+}
+
+impl<V> Visitor for Box<V>
+where
+    V: Visitor + ?Sized,
+{
+    fn before_enter(&self, ctx: &Ctx, f: &mut Formatter, all_states: &[Uid]) -> Result {
+        (**self).before_enter(ctx, f, all_states)
+    }
+
+    fn after_leave(&self, ctx: &Ctx, f: &mut Formatter, all_states: &[Uid]) -> Result {
+        (**self).after_leave(ctx, f, all_states)
+    }
+
+    fn begin_parse_loop(&self, ctx: &Ctx, f: &mut Formatter) -> Result {
+        (**self).begin_parse_loop(ctx, f)
+    }
+
+    fn end_parse_loop(&self, ctx: &Ctx, f: &mut Formatter) -> Result {
+        (**self).end_parse_loop(ctx, f)
+    }
+
+    fn enter_state(&self, ctx: &Ctx, f: &mut Formatter, state: Uid) -> Result {
+        (**self).enter_state(ctx, f, state)
+    }
+
+    fn leave_state(&self, ctx: &Ctx, f: &mut Formatter, state: Uid) -> Result {
+        (**self).leave_state(ctx, f, state)
+    }
+
+    fn enter_match(&self, ctx: &Ctx, f: &mut Formatter, state: Uid, token: Token) -> Result {
+        (**self).enter_match(ctx, f, state, token)
+    }
+
+    fn leave_match(&self, ctx: &Ctx, f: &mut Formatter, state: Uid, token: Token) -> Result {
+        (**self).leave_match(ctx, f, state, token)
+    }
+
+    fn visit_shift(
+        &self,
+        ctx: &Ctx,
+        f: &mut Formatter,
+        state: Uid,
+        token: Token,
+        next_state: Uid,
+    ) -> Result {
+        (**self).visit_shift(ctx, f, state, token, next_state)
+    }
+
+    fn visit_reduce(
+        &self,
+        ctx: &Ctx,
+        f: &mut Formatter,
+        state: Uid,
+        token: Token,
+        rule: Id,
+        expansion: &[Token],
+    ) -> Result {
+        (**self).visit_reduce(ctx, f, state, token, rule, expansion)
+    }
+
+    fn matching_error(
+        &self,
+        ctx: &Ctx,
+        f: &mut Formatter,
+        state: Uid,
+        expected: HashSet<Token>,
+    ) -> Result {
+        (**self).matching_error(ctx, f, state, expected)
+    }
+
+    fn visit_goto(
+        &self,
+        ctx: &Ctx,
+        f: &mut Formatter,
+        symbol: Id,
+        gotos: &mut dyn Iterator<Item = (Uid, Uid)>,
+    ) -> Result {
+        (**self).visit_goto(ctx, f, symbol, gotos)
     }
 }

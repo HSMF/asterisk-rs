@@ -1,46 +1,44 @@
 PRELUDE = {
-    open Lex
-    open Ast
+    use super::lex::Token;
+    use super::ast::*;
+    fn push<T>(mut x: Vec<T>, v: T) -> Vec<T> {
+        x.push(v);
+        x
+    }
 }
-TARGET = ocaml
+TARGET = rust
 entry = Grammar
 
-# denotes that the token `Literal` carries data of type string
-token_Ident = string
-token_Literal = string
+# denotes that the token `Literal` carries data of type `String`
+token_Ident = String
+token_Literal = String
 
-Grammar: { spec }
-  | Configs Rules {{
-        spec_configs = v0
-      ; spec_rules = v1
-      }}
-  | Rules {{
-        spec_configs = []
-      ; spec_rules = v0
-      }}
+Grammar: { Spec }
+  | Configs Rules { Spec { rules: v1, configs: v0 } }
+  | Rules { Spec { rules: v0, configs: Vec::new() } }
 
-Configs: { (string * string) list }
-  | Configs  Config { v1 :: v0 }
+Configs: { Vec<(string, string)> }
+  | Configs  Config { push(v0, v1) }
   | Config { [v0] }
 
-Config: { string * string }
-  | Ident Equals Ident { v0, v2 }
-  | Ident Equals Literal { v0, v2 }
+Config: { (string, string) }
+  | Ident Equals Ident { (v0, v2) }
+  | Ident Equals Literal { (v0, v2) }
 
-Rules: { rule list }
-  | Rule Rules { v0 :: v1 }
-  | { [] }
+Rules: { Vec<Rule> }
+  | Rule Rules { push(v1, v0) }
+  | { vec![] }
 
-Rule: { rule }
-  | Ident Colon Literal CaseList { (v0, v2, v3) }
+Rule: { Rule }
+  | Ident Colon Literal CaseList { Rule {name: v0, typ: v2, expansions: v3} }
 
-CaseList: { (string list * string) list }
-  | Case CaseList { v0 :: v1 }
-  | { [] }
+CaseList: { Vec<Expansion> }
+  | Case CaseList { push(v1, v0) }
+  | { vec![] }
 
-Case: { string list * string }
-  | Pipe Idents Literal { v1, v2 }
+Case: { Expansion }
+  | Pipe Idents Literal { Expansion {tokens: v1, code: v2} }
 
-Idents: { string list }
-  | Ident Idents { v0 :: v1 }
-  | { [] }
+Idents: { Vec<String> }
+  | Idents Ident { push(v0, v1) }
+  | { vec![] }

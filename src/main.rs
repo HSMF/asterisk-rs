@@ -1,19 +1,11 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::io::Write;
+use std::path::PathBuf;
 
 use anyhow::Context;
 use clap::Parser;
 use grammar::Grammar;
 
-use crate::{
-    frontends::{
-        ocaml::OcamlVisitor,
-        rust::{format_src, Rust},
-        Render,
-    },
-    generator::Graph,
-    spec::parse_string,
-    table::Table,
-};
+use crate::{frontends::Render, generator::Graph, spec::parse_string, table::Table};
 
 mod frontends;
 
@@ -128,16 +120,23 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     if cli.bootstrap {
-        let output = std::fs::File::create(&cli.grammar).context("failed to open file")?;
-
-        spec::bootstrap(output).context("could not bootstrap")?;
-        format_src(&cli.grammar);
+        spec::bootstrap(&cli.grammar).context("could not bootstrap")?;
 
         return Ok(());
     }
 
     let grammar = std::fs::read_to_string(cli.grammar).expect("failed to read grammar");
-    parse_string(&grammar);
+    let (grammar, visitor) = parse_string(&grammar)?;
+    let graph = Graph::make(&grammar, grammar.initial(a).into_iter().collect());
+    let table = Table::from_graph(&graph).expect("could construct table");
+
+    if let Some(output) = cli.output {
+        let mut f = std::fs::File::create(&output).unwrap();
+        writeln!(f, "{}", Render::new(&visitor, &table, &grammar)).unwrap();
+        visitor.format(&output).context("failed to format")?;
+    } else {
+        println!("{}", Render::new(&visitor, &table, &grammar));
+    }
 
     Ok(())
 }

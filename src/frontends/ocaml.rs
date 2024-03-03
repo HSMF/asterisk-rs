@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 use crate::{generator::Uid, grammar::Token, string_pool::Id};
 
-use super::{Ctx, Visitor};
+use super::{Ctx, Format, Visitor};
 
 pub struct OcamlVisitor {
     prelude: String,
@@ -19,11 +19,12 @@ impl OcamlVisitor {
         prelude: String,
         mut non_terminal_types: HashMap<String, String>,
         terminal_types: HashMap<String, String>,
+        entry_rule: String,
     ) -> Self {
         non_terminal_types.insert(
             "S0".to_owned(),
             non_terminal_types
-                .get("A")
+                .get(&entry_rule)
                 .expect("entry rule is missing in types")
                 .to_owned(),
         );
@@ -298,13 +299,13 @@ impl Visitor for OcamlVisitor {
         ctx: &Ctx,
         f: &mut std::fmt::Formatter,
         symbol: Id,
-        gotos: impl Iterator<Item = (Uid, Uid)>,
+        gotos: &mut dyn Iterator<Item = (Uid, Uid)>,
     ) -> std::fmt::Result {
         let grammar = ctx.grammar;
         let name = grammar.pool().get(symbol);
         writeln!(f, "  and goto_{} (state: states) = ", name)?;
         writeln!(f, "    match state with")?;
-        for (from, to) in gotos {
+        for (from, to) in gotos.into_iter() {
             writeln!(f, "    | State_{from} -> node{to}, State_{to}")?;
         }
         writeln!(f, r#"    | _ -> raise_msg ("couldn't match in {}")"#, name)?;
@@ -359,6 +360,13 @@ impl Visitor for OcamlVisitor {
     }
 
     fn end_parse_loop(&self, _: &Ctx, _: &mut std::fmt::Formatter) -> std::fmt::Result {
+        Ok(())
+    }
+}
+
+impl Format for OcamlVisitor {
+    fn format(&self, path: &str) -> anyhow::Result<()> {
+        eprintln!("formatting ocaml code is not yet implemented");
         Ok(())
     }
 }
