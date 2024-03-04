@@ -9,7 +9,7 @@ PRELUDE = {
 }
 TARGET = rust
 entry = Grammar
-token_type = Token
+type_token = Token
 
 # denotes that the token `Literal` carries data of type `String`
 token_Ident = String

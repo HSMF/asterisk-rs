@@ -4,6 +4,7 @@ use std::{
 };
 
 use itertools::Itertools;
+use tracing::info;
 
 use crate::{
     grammar::{Grammar, Token},
@@ -143,7 +144,9 @@ fn advance_states<'a>(edge: Token, states: impl Iterator<Item = &'a State>) -> H
 }
 
 impl Graph {
+    #[tracing::instrument(skip(grammar))]
     pub fn make(grammar: &Grammar, states: HashSet<State>) -> Graph {
+        info!("constructing graph");
         fn inner(
             g: &mut Graph,
             grammar: &Grammar,
@@ -181,6 +184,7 @@ impl Graph {
         let mut gen_uid = GenUid(0);
         inner(&mut graph, grammar, &mut gen_uid, states);
 
+        info!("graph has {} states", graph.0.len());
         graph
     }
 

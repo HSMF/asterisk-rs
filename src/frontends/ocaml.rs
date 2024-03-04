@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use anyhow::Context;
 use itertools::Itertools;
 
 use crate::{generator::Uid, grammar::Token, string_pool::Id};
@@ -171,7 +172,7 @@ impl Visitor for OcamlVisitor {
         _ctx: &Ctx,
         f: &mut std::fmt::Formatter,
         state: Uid,
-        expected: std::collections::HashSet<Token>,
+        _expected: std::collections::HashSet<Token>,
     ) -> std::fmt::Result {
         writeln!(
             f,
@@ -366,7 +367,13 @@ impl Visitor for OcamlVisitor {
 
 impl Format for OcamlVisitor {
     fn format(&self, path: &str) -> anyhow::Result<()> {
-        eprintln!("formatting ocaml code is not yet implemented");
+        let mut handle = std::process::Command::new("ocamlformat")
+            .arg(path)
+            .arg("--inplace")
+            .arg("--enable-outside-detected-project")
+            .spawn()
+            .context("could not spawn ocamlformat")?;
+        handle.wait().context("could not wait for ocamlformat")?;
         Ok(())
     }
 }

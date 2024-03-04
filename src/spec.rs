@@ -4,6 +4,7 @@ use ansi_term::Color;
 use anyhow::{bail, Context};
 use itertools::Itertools;
 use logos::Logos;
+use tracing::info;
 
 use crate::{
     frontends::{ocaml::OcamlVisitor, rust::Rust, Format, Frontend, Render},
@@ -63,11 +64,12 @@ fn own_visitor() -> Rust {
     .use_default_for_token()
 }
 
+#[tracing::instrument]
 #[allow(dead_code)]
 pub fn bootstrap(filename: &str) -> anyhow::Result<()> {
     let mut f = File::create(filename).context("could not create output file")?;
     let mut grammar = own_grammar();
-    println!("{grammar}");
+    info!("got grammar:\n{grammar}");
     let s0 = grammar.pool_mut().add("S0".to_owned());
     let graph = Graph::make(&grammar, grammar.initial(s0).into_iter().collect());
 
@@ -75,7 +77,7 @@ pub fn bootstrap(filename: &str) -> anyhow::Result<()> {
         let mut f = std::fs::File::create("output/tmp.dot").unwrap();
         writeln!(f, "{}", graph.print(grammar.pool_mut())).unwrap();
 
-        eprintln!("spec: running graphviz");
+        info!("running graphviz");
         run_graphviz(&"output/tmp.dot")?;
     }
 
@@ -102,6 +104,7 @@ pub fn bootstrap(filename: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[tracing::instrument]
 pub fn parse_string(s: &str) -> anyhow::Result<(Grammar, Box<dyn Frontend>)> {
     let toks = Token::lexer(s).map(|x| x.expect("lexing error"));
 
@@ -203,7 +206,7 @@ pub fn parse_string(s: &str) -> anyhow::Result<(Grammar, Box<dyn Frontend>)> {
         .unwrap_or("ENTRY")
         .to_owned();
 
-    let token_type = find_case_insensitive(&configs, "token_type")
+    let token_type = find_case_insensitive(&configs, "type_token")
         .unwrap_or("token")
         .to_owned();
 
@@ -228,8 +231,6 @@ pub fn parse_string(s: &str) -> anyhow::Result<(Grammar, Box<dyn Frontend>)> {
         .collect();
 
     let grammar = builder.finish(entry_point.to_owned());
-    println!("{grammar}");
-    println!("{}", own_grammar());
 
     let visitor: Box<dyn Frontend> = match language.as_str() {
         "ocaml" => Box::new(OcamlVisitor::new(

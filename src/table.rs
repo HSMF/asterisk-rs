@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
 
 use either::Either;
+use tracing::info;
 
 use crate::{
     generator::{Graph, Uid},
@@ -58,7 +59,9 @@ pub struct TableEntry {
 pub struct Table(pub(crate) HashMap<Uid, TableEntry>);
 
 impl Table {
+    #[tracing::instrument(skip(graph))]
     pub fn from_graph(graph: &Graph) -> Result<Self, Conflict> {
+        info!("constructing table");
         let mut table = HashMap::new();
 
         for (&state_id, (states, neighbors)) in &graph.0 {
@@ -119,6 +122,7 @@ impl Table {
             );
         }
 
+        info!("table has {} states", table.len());
         Ok(Table(table))
     }
 }
