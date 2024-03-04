@@ -181,6 +181,9 @@ pub fn parse_string(s: &str) -> anyhow::Result<(Grammar, Box<dyn Frontend>)> {
 
     for rule in &spec.rules {
         non_term_types.insert(rule.name.to_owned(), rule.typ.to_owned());
+        if rule.name == "S0" {
+            bail!("rule may not be called S0");
+        }
     }
 
     for rule in spec.rules {
