@@ -1,6 +1,6 @@
 PRELUDE = {
-    use super::lex::Token;
-    use super::ast::*;
+    use crate::spec::lex::Token;
+    use crate::spec::ast::*;
 
     fn push<T>(mut x: Vec<T>, v: T) -> Vec<T> {
         x.push(v);

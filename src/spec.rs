@@ -46,7 +46,10 @@ fn own_visitor() -> Rust {
     let s = String::from;
     let p = |a, b| (s(a), s(b));
     Rust::new(
-        "use super::lex::Token; use super::ast::*;".to_owned(),
+        r#"
+        use crate::spec::lex::Token;
+        use crate::spec::ast::*;"#
+            .to_owned(),
         HashMap::from([
             p("Grammar", "Spec"),
             p("Configs", "Vec<(String, String)>"),

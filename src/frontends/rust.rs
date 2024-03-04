@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::Context;
 use itertools::Itertools;
+use tracing::info;
 
 use crate::generator::Uid;
 
@@ -16,7 +17,9 @@ pub struct Rust {
     use_default_for_token: bool,
 }
 impl Format for Rust {
+    #[tracing::instrument(skip(self))]
     fn format(&self, path: &str) -> anyhow::Result<()> {
+        info!("formatting using rustfmt");
         let mut handle = std::process::Command::new("rustfmt")
             .arg(path)
             .spawn()
