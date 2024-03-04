@@ -1,0 +1,70 @@
+prelude = {
+    use crate::Token;
+    use crate::ast::*;
+
+    fn push<T>(mut x: Vec<T>, v: T) -> Vec<T> {
+        x.push(v);
+        x
+    }
+}
+
+target = rust
+entry = PROG
+type_token = Token
+
+token_Ident = String
+token_Int = i32
+
+PROG: { Vec<Item> }
+  | ITEM_LIST { v0.into_iter().rev().collect() }
+
+ITEM_LIST: { Vec<Item> }
+  | ITEM ITEM_LIST { push(v1, v0) }
+  | { vec![] }
+
+ITEM: { Item }
+  | Ident Equals EXPR { Item::Assn(v0, v2) }
+  | Ident OpenParen ARG_LIST CloseParen Begin ITEM_LIST End { Item::Func(v0, v2, v5.into_iter().rev().collect())  }
+  | Return EXPR { Item::Return(v1) }
+
+ARG_LIST: { Vec<String> }
+  | ARG_LIST_ { v0 }
+  | ARG_LIST_ Comma { v0 }
+  | Comma { vec![] }
+  | { vec![] }
+
+ARG_LIST_: { Vec<String> }
+  | ARG_LIST_ Comma Ident { push(v0, v2) }
+  | Ident { vec![v0] }
+
+EXPR: { Box<Expr> }
+  | EXPR_ADD { v0 }
+
+EXPR_ADD: { Box<Expr> }
+  | EXPR_ADD Plus EXPR_MUL { Box::new(Expr::Bop(Bop::Add, v0, v2)) }
+  | EXPR_ADD Minus EXPR_MUL { Box::new(Expr::Bop(Bop::Sub, v0, v2)) }
+  | EXPR_MUL { v0 }
+
+EXPR_MUL: { Box<Expr> }
+  | EXPR_MUL Mul EXPR_ATOM { Box::new(Expr::Bop(Bop::Mul, v0, v2)) }
+  | EXPR_MUL Div EXPR_ATOM { Box::new(Expr::Bop(Bop::Div, v0, v2)) }
+  | EXPR_ATOM { v0 }
+
+EXPR_ATOM: { Box<Expr> }
+  | Int { Box::new(Expr::Int(v0)) }
+  | Ident { Box::new(Expr::Var(v0)) }
+  | Plus EXPR_ATOM { Box::new(Expr::Uop(Uop::Pos, v1)) }
+  | Minus EXPR_ATOM { Box::new(Expr::Uop(Uop::Neg, v1)) }
+  | OpenParen EXPR CloseParen { v1 }
+  | Ident OpenParen EXPR_LIST CloseParen { Box::new(Expr::Call(v0, v2)) }
+  | If EXPR Then ITEM_LIST Else ITEM_LIST End { Box::new(Expr::If(v1, v3, v5)) }
+
+EXPR_LIST: { Vec<Expr> }
+  | EXPR_LIST_ { v0 }
+  | EXPR_LIST_ Comma { v0 }
+  | Comma { vec![] }
+  | { vec![] }
+
+EXPR_LIST_: { Vec<Expr> }
+  | EXPR_LIST_ Comma EXPR { push(v0, *v2) }
+  | EXPR { vec![*v0] }

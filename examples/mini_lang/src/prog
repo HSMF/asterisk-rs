@@ -1,0 +1,18 @@
+x = 1
+y = x + 7
+_ = println(x + y)
+
+fac(n) begin
+    _ = if n then
+        return n * fac(n - 1)
+    else
+        return 1
+    end
+end
+
+x = 7 + if 0 then _ = 1 else _ = 2 end
+
+_ = printc(102, 97, 99, 40)
+_ = print(x)
+_ = printc(41, 32, 61, 32)
+_ = println(fac(x))
