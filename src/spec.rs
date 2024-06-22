@@ -7,7 +7,7 @@ use logos::Logos;
 use tracing::info;
 
 use crate::{
-    frontends::{ocaml::OcamlVisitor, rust::Rust, Format, Frontend, Render},
+    frontends::{ocaml::OcamlVisitor, python::Python, rust::Rust, Format, Frontend, Render},
     generator::Graph,
     grammar::Grammar,
     run_graphviz,
@@ -249,6 +249,12 @@ pub fn parse_string(s: &str) -> anyhow::Result<(Grammar, Box<dyn Frontend>)> {
             Rust::new(prelude, non_term_types, term_types, entry_point, token_type)
                 .use_default_for_token(),
         ),
+        "python" => Box::new(Python::new(
+            prelude,
+            entry_point,
+            token_type,
+            find_case_insensitive(&configs, "gen_token_fn").map(|x| x.to_owned()),
+        )),
         _ => bail!("unsupported target language: {language}"),
     };
 

@@ -323,3 +323,97 @@ macro_rules! grammar {
         builder.finish(stringify!($entry).to_owned())
     }};
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn nonterm(g: &Grammar, s: &str) -> Token {
+        Token::NonTerm(g.pool().get_reverse(s).unwrap())
+    }
+
+    fn term(g: &Grammar, s: &str) -> Token {
+        Token::Term(g.pool().get_reverse(s).unwrap())
+    }
+
+    #[test]
+    fn first_set_empty() {
+        let g = grammar!(
+            A:
+            A => @ ""
+        );
+        let a = nonterm(&g, "A");
+        assert_eq!(g.first(&[a]), BTreeSet::from([Token::Empty]));
+    }
+
+    #[test]
+    fn first_set_empty_indirect() {
+        let g = grammar!(
+            A:
+            A => N "B" @ "";
+            B => @ "";
+        );
+        let a = nonterm(&g, "A");
+        assert_eq!(g.first(&[a]), BTreeSet::from([Token::Empty]));
+    }
+
+    #[test]
+    fn first_set_empty_or_not() {
+        let g = grammar!(
+            A:
+            A => N "B" @ "";
+            A => T "c" @ "";
+            B => @ "";
+        );
+        let a = nonterm(&g, "A");
+        let c = term(&g, "c");
+        assert_eq!(g.first(&[a]), BTreeSet::from([c, Token::Empty]));
+    }
+
+    #[test]
+    fn first_set_collapse() {
+        let g = grammar!(
+            A:
+            A => N "B" T "d" @ "";
+            A => T "c" @ "";
+            B => @ "";
+        );
+        let a = nonterm(&g, "A");
+        let c = term(&g, "c");
+        let d = term(&g, "d");
+        assert_eq!(g.first(&[a]), BTreeSet::from([c, d]));
+    }
+
+    #[test]
+    fn first_set_optional_collapse() {
+        let g = grammar!(
+            A:
+            A => N "B" T "d" @ "";
+            B => @ "";
+            B => T "c" @ "";
+        );
+        let a = nonterm(&g, "A");
+        let c = term(&g, "c");
+        let d = term(&g, "d");
+        assert_eq!(g.first(&[a]), BTreeSet::from([c, d]));
+    }
+
+    #[test]
+    fn productions() {
+        let g = grammar!(
+            A:
+            A => N "B" T "d" @ "";
+            B => @ "";
+            B => T "c" @ "";
+        );
+        let a = nonterm(&g, "A");
+        let b = nonterm(&g, "B");
+        let c = term(&g, "c");
+        let d = term(&g, "d");
+        let prods: BTreeSet<&[Token]> = g.productions(a.non_term().unwrap()).into_iter().collect();
+        assert_eq!(prods, BTreeSet::from([&[b, d][..],]));
+
+        let prods: BTreeSet<&[Token]> = g.productions(b.non_term().unwrap()).into_iter().collect();
+        assert_eq!(prods, BTreeSet::from([&[][..], &[c][..],]));
+    }
+}

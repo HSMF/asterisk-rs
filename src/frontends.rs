@@ -18,7 +18,9 @@ pub struct Ctx<'a> {
 
 pub mod ocaml;
 pub mod rust;
+pub mod python;
 
+/// Visitor trait. This is to be implemented for every target language.
 pub trait Visitor {
     /// This function is called before the table is "entered", i.e. at the very beginning
     /// It is only called once per writing process.

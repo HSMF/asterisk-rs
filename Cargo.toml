@@ -13,3 +13,6 @@ itertools = "0.12.1"
 logos = "0.14.0"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+
+[dev-dependencies]
+tempdir = "0.3.7"

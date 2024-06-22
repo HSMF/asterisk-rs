@@ -1,0 +1,26 @@
+TARGET = rust
+entry = main_rule
+prelude = {
+    use crate::*;
+}
+
+type_token = Token
+token_Int = i32
+
+main_rule: { i32 }
+  | main_rule Plus prod { v0 + v2 }
+  | main_rule Minus prod { v0 - v2 }
+  | prod { v0 }
+
+prod: { i32 }
+  | prod Mul atom { v0 * v2 }
+  | prod Div atom { v0 / v2 }
+  | atom { v0 }
+
+atom: { i32 }
+  | int { v0 }
+  | OpenParen main_rule CloseParen { v1 }
+
+int: { i32 }
+  | int Int { v0 * 10 + v1 }
+  | Int { v0 }
