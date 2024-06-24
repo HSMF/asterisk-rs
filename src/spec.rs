@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs::File, io::Write};
 
 use ansi_term::Color;
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use itertools::Itertools;
 use logos::Logos;
 use tracing::info;
@@ -208,6 +208,12 @@ pub fn parse_string(s: &str) -> anyhow::Result<(Grammar, Box<dyn Frontend>)> {
             .map(|x| x.1.as_str())
     }
 
+    fn required_field(arr: &[(String, String)], key: &str) -> anyhow::Result<String> {
+        find_case_insensitive(arr, key)
+            .ok_or(anyhow!("missing field: {key}"))
+            .map(|x| x.to_owned())
+    }
+
     let entry_point = find_case_insensitive(&configs, "entry")
         .unwrap_or("ENTRY")
         .to_owned();
@@ -252,8 +258,10 @@ pub fn parse_string(s: &str) -> anyhow::Result<(Grammar, Box<dyn Frontend>)> {
         "python" => Box::new(Python::new(
             prelude,
             entry_point,
-            token_type,
             find_case_insensitive(&configs, "gen_token_fn").map(|x| x.to_owned()),
+            required_field(&configs, "get_data")?,
+            required_field(&configs, "get_kind")?,
+            required_field(&configs, "token_kind")?,
         )),
         _ => bail!("unsupported target language: {language}"),
     };

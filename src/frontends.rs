@@ -19,6 +19,7 @@ pub struct Ctx<'a> {
 pub mod ocaml;
 pub mod rust;
 pub mod python;
+// pub mod java;
 
 /// Visitor trait. This is to be implemented for every target language.
 pub trait Visitor {
@@ -29,7 +30,9 @@ pub trait Visitor {
     /// It is only called once per writing process.
     fn after_leave(&self, ctx: &Ctx, f: &mut Formatter, all_states: &[Uid]) -> Result;
 
+    /// this function is called to initialize the language's iteration mechanism
     fn begin_parse_loop(&self, ctx: &Ctx, f: &mut Formatter) -> Result;
+    /// this function is called to finalize the language's iteration mechanism
     fn end_parse_loop(&self, ctx: &Ctx, f: &mut Formatter) -> Result;
 
     /// This function is used to construct a new state. It is called once per state
@@ -88,6 +91,7 @@ pub trait Frontend: Format + Visitor {}
 
 impl<F> Frontend for F where F: Format + Visitor {}
 
+// maybe have a VisitorFactory instead, to allow for mutable state in visitor
 pub struct Render<'a> {
     table: &'a Table,
     grammar: &'a Grammar,

@@ -11,6 +11,7 @@ clap = { version = "4.5.1", features = ["derive"] }
 either = "1.10.0"
 itertools = "0.12.1"
 logos = "0.14.0"
+textwrap = "0.16.1"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 
