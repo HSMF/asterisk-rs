@@ -4,8 +4,8 @@ prelude = {
 }
 
 token_kind = TokenKind
-get_kind = { item.get_kind() }
-get_data = { item.get_data() }
+get_kind = { token.get_kind() }
+get_data = { token.get_data() }
 
 main_rule: { i32 }
   | main_rule Plus prod { v0 + v2 }

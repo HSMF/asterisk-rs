@@ -255,6 +255,7 @@ impl Visitor for Python {
         indentln!(f, self, "{if_kw} state == State.STATE{state}:");
         self.enter();
         indentln!(f, self, "is_eof, token = tokens.peek()");
+        indentln!(f, self, "kind = {}", self.get_kind);
         indentln!(f, self, "if False:");
         self.enter();
         indentln!(f, self, "pass");
@@ -276,7 +277,7 @@ impl Visitor for Python {
         &self,
         ctx: &super::Ctx,
         f: &mut std::fmt::Formatter,
-        state: crate::generator::Uid,
+        _state: crate::generator::Uid,
         token: crate::grammar::Token,
     ) -> std::fmt::Result {
         let pool = ctx.grammar.pool();
@@ -297,12 +298,13 @@ impl Visitor for Python {
 
     fn leave_match(
         &self,
-        ctx: &super::Ctx,
-        f: &mut std::fmt::Formatter,
-        state: crate::generator::Uid,
-        token: crate::grammar::Token,
+        _ctx: &super::Ctx,
+        _f: &mut std::fmt::Formatter,
+        _state: crate::generator::Uid,
+        _token: crate::grammar::Token,
     ) -> std::fmt::Result {
-        todo!()
+        self.leave();
+        Ok(())
     }
 
     fn visit_shift(
@@ -315,19 +317,29 @@ impl Visitor for Python {
     ) -> std::fmt::Result {
         if let crate::grammar::Token::Term(_id) = token {
             indentln!(f, self, "next(tokens)");
+            indentln!(f, self, "data = {}", self.get_data);
+        } else {
+            indentln!(f, self, "data = None");
+            indentln!(f, self, "kind = None");
         }
-        todo!()
+        indentln!(f, self, "state = State.STATE{next_state}");
+        indentln!(f, self, "stack.append((state, kind, data))");
+        Ok(())
     }
 
     fn visit_reduce(
         &self,
         ctx: &super::Ctx,
         f: &mut std::fmt::Formatter,
-        state: crate::generator::Uid,
-        token: crate::grammar::Token,
+        _state: crate::generator::Uid,
+        _token: crate::grammar::Token,
         rule: crate::string_pool::Id,
         expansion: &[crate::grammar::Token],
     ) -> std::fmt::Result {
+        let rule_name = ctx.grammar.pool().get(rule);
+        for (i, token) in expansion.iter().enumerate().rev() {
+            indentln!(f, self, "v{i} =");
+        }
         todo!()
     }
 
@@ -338,7 +350,17 @@ impl Visitor for Python {
         state: crate::generator::Uid,
         expected: std::collections::HashSet<crate::grammar::Token>,
     ) -> std::fmt::Result {
-        todo!()
+        let pool = ctx.grammar.pool();
+        indentln!(f, self, "else:");
+        self.enter();
+        indentln!(
+            f,
+            self,
+            "raise Exception('expected one of {} in state {state}')",
+            expected.iter().map(|x| x.display(pool)).format(", ")
+        );
+        self.leave();
+        Ok(())
     }
 
     fn visit_goto(
