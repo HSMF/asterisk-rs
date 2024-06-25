@@ -29,6 +29,15 @@ def case(input: str, expected: int):
     print(f"SUCCESS: {input} = {result}")
 
 
+def case_err(input: str):
+    toks = lex(input)
+    try:
+        result = parser.parse(toks)
+    except Exception:
+        return
+    raise Exception(f"expected to fail but did not (returned {result} instead)")
+
+
 if __name__ == "__main__":
     case("11+2", 13)
     case("1+1", 2)
@@ -37,3 +46,15 @@ if __name__ == "__main__":
     case("21/7+5", 8)
     case("(((((((((((((5)))))))))+1))))-10", -4)
     case("1+2+3+4+5+6+7+8+9+10", 55)
+
+    case_err("1232((9))")
+    case_err("1+2+")
+    case_err("7*1+8+(")
+    case_err(")()(*)(1)(2)(*)(*)")
+    case_err("1++2")
+    case_err("1*+2")
+    case_err("-1")
+    case_err("11**(1)")
+    case_err("11**(1)")
+    case_err("(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+(1+))))))))))))1")
+    case_err("(1+)1")
