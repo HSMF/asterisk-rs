@@ -173,6 +173,18 @@ impl Visitor for Python {
             )
         )?;
 
+        writeln!(
+            f,
+            "{}",
+            dedent(
+                r#"
+            def _asterisk_assert_eq(a, b, msg):
+                if a != b:
+                    error_msg(f"{a} != {b} {msg}")
+        "#
+            )
+        )?;
+
         indent!(f, self, "State = Enum('State', [");
         self.enter();
         if !all_states.is_empty() {
@@ -342,8 +354,30 @@ impl Visitor for Python {
         expansion: &[crate::grammar::Token],
     ) -> std::fmt::Result {
         let rule_name = ctx.grammar.pool().get(rule);
-        for (i, _token) in expansion.iter().enumerate().rev() {
-            indentln!(f, self, "v{i} = stack.pop()[2]");
+        let pool = ctx.grammar.pool();
+        for (i, token) in expansion.iter().enumerate().rev() {
+            indentln!(f, self, "_, expected_type, v{i} = stack.pop()");
+
+            indent!(f, self, "_asterisk_assert_eq(expected_type, ");
+            match token {
+                crate::grammar::Token::Term(id) => {
+                    let name = pool.get(*id);
+                    write!(f, "{}.{name}, ", self.token_kind)?;
+                }
+                crate::grammar::Token::NonTerm(id) => {
+                    let name = pool.get(*id);
+                    write!(f, "NonTerm._{name}, ")?;
+                }
+                crate::grammar::Token::Eof => {
+                    write!(f, "None, ")?;
+                }
+                crate::grammar::Token::Empty => unreachable!(),
+            }
+            writeln!(
+                f,
+                "'expected to find {} on the stack')",
+                token.display(pool)
+            )?;
         }
         if rule_name == "S0" {
             indentln!(f, self, "return v0");
@@ -360,7 +394,7 @@ impl Visitor for Python {
         indentln!(f, self, "before, _, _ = stack[-1]");
         indentln!(f, self, "goto = goto_{rule_name}(before)");
         indentln!(f, self, "state = goto");
-        indentln!(f, self, "stack.append((goto, 'todo', value))");
+        indentln!(f, self, "stack.append((goto, NonTerm._{rule_name}, value))");
         Ok(())
     }
 
@@ -377,7 +411,7 @@ impl Visitor for Python {
         indentln!(
             f,
             self,
-            "raise Exception('expected one of {} in state {state}')",
+            "error_msg('expected one of {} in state {state}')",
             expected.iter().map(|x| x.display(pool)).format(", ")
         );
         self.leave();
