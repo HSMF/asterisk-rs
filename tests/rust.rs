@@ -11,6 +11,7 @@ fn parens() -> anyhow::Result<()> {
     let build = build_dir();
     Command::new("cargo")
         .arg("init")
+        .arg("--quiet")
         .arg("--name")
         .arg("parens")
         .current_dir(build.path())
@@ -24,7 +25,9 @@ fn parens() -> anyhow::Result<()> {
     )?;
 
     Command::new("cargo")
+        .env("RUSTFLAGS", "-Awarnings")
         .arg("run")
+        .arg("--quiet")
         .current_dir(build.path())
         .run()?;
 

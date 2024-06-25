@@ -1,58 +1,32 @@
-from enum import Enum
 import parser
-
-TokenKind = Enum(
-    "TokenKind",
-    [
-        "OPEN_PAREN" "CLOSE_PAREN",
-        "INT",
-        "PLUS",
-        "MINUS",
-        "MUL",
-        "DIV",
-    ],
-)
-
-
-class Token:
-    def __init__(self, kind: TokenKind, data=None) -> None:
-        self.token_kind = kind
-        if data is not None:
-            self.data = data
-
-    def kind(self):
-        return self.token_kind
-
-    def get_data(self):
-        if self.kind() == TokenKind.INT:
-            return self.data
-
-        return None
+from tokens import Token, TokenKind
 
 
 def lex(s: str):
     out = []
     for ch in s:
         if ch == "+":
-            out.append(Token(TokenKind.PLUS))
+            out.append(Token(TokenKind.Plus))
         elif ch == "-":
-            out.append(Token(TokenKind.MINUS))
+            out.append(Token(TokenKind.Minus))
         elif ch == "*":
-            out.append(Token(TokenKind.MUL))
+            out.append(Token(TokenKind.Mul))
         elif ch == "/":
-            out.append(Token(TokenKind.DIV))
+            out.append(Token(TokenKind.Div))
         elif ch == "(":
-            out.append(Token(TokenKind.OPEN_PAREN))
+            out.append(Token(TokenKind.OpenParen))
         elif ch == ")":
-            out.append(Token(TokenKind.CLOSE_PAREN))
+            out.append(Token(TokenKind.CloseParen))
         elif "0" <= ch <= "9":
-            out.append(Token(TokenKind.INT, ord(ch) - ord("0")))
+            out.append(Token(TokenKind.Int, ord(ch) - ord("0")))
+    return out
 
 
 def case(input: str, expected: int):
     toks = lex(input)
     result = parser.parse(toks)
     assert result == expected, f"expected {result} = {expected}, {input:=}"
+    print(f"SUCCESS: {input} = {result}")
 
 
 if __name__ == "__main__":

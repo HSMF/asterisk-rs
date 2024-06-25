@@ -8,7 +8,6 @@ use super::{Format, Visitor};
 #[derive(Debug)]
 pub struct Python {
     prelude: String,
-    entry_rule: String,
     gen_token_fn: Option<String>,
     indent_level: Cell<usize>,
     get_data: String,
@@ -49,7 +48,7 @@ impl Format for Python {
 impl Python {
     pub fn new(
         prelude: String,
-        entry_rule: String,
+        _entry_rule: String,
         gen_token_fn: Option<String>,
         get_data: String,
         get_kind: String,
@@ -61,7 +60,7 @@ impl Python {
         );
         Self {
             prelude,
-            entry_rule,
+            // entry_rule,
             gen_token_fn,
             get_data,
             get_kind,
@@ -150,24 +149,24 @@ impl Visitor for Python {
         class Peekable:
             def __init__(self, it):
                 self.it = it
-                self.peek = (False, None)
+                self._peek = (False, None)
 
             def peek(self):
-                if self.peek[0]:
-                    return (False, self.peek[1])
+                if self._peek[0]:
+                    return (False, self._peek[1])
                 try:
                     val = next(self.it)
-                    self.peek = (True, val)
+                    self._peek = (True, val)
                     return (False, val)
                 except StopIteration:
                     return (True, None)
 
             def __next__(self):
-                if self.peek[0]:
-                    ret = self.peek[1]
-                    self.peek = (False, None)
+                if self._peek[0]:
+                    ret = self._peek[1]
+                    self._peek = (False, None)
                     return ret
-                self.peek = (False, None)
+                self._peek = (False, None)
                 val = next(self.it) 
                 return val
         "#
@@ -215,7 +214,7 @@ impl Visitor for Python {
         self.enter();
 
         indentln!(f, self, "stack = []");
-        indentln!(f, self, "tokens = Peekable(tokens)");
+        indentln!(f, self, "tokens = Peekable(iter(tokens))");
         indentln!(f, self, "state = State.STATE1");
         indentln!(f, self, "stack.append((State.STATE1, None, None))");
 
@@ -239,14 +238,14 @@ impl Visitor for Python {
         Ok(())
     }
 
-    fn end_parse_loop(&self, ctx: &super::Ctx, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn end_parse_loop(&self, _ctx: &super::Ctx, _f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.leave();
-        todo!()
+        Ok(())
     }
 
     fn enter_state(
         &self,
-        ctx: &super::Ctx,
+        _ctx: &super::Ctx,
         f: &mut std::fmt::Formatter,
         state: crate::generator::Uid,
     ) -> std::fmt::Result {
@@ -255,7 +254,13 @@ impl Visitor for Python {
         indentln!(f, self, "{if_kw} state == State.STATE{state}:");
         self.enter();
         indentln!(f, self, "is_eof, token = tokens.peek()");
+        indentln!(f, self, "kind = None");
+        // indentln!(f, self, "__import__('IPython').embed()");
+        indentln!(f, self, "if not is_eof:");
+        self.enter();
         indentln!(f, self, "kind = {}", self.get_kind);
+        self.leave();
+
         indentln!(f, self, "if False:");
         self.enter();
         indentln!(f, self, "pass");
@@ -284,7 +289,7 @@ impl Visitor for Python {
         match token {
             crate::grammar::Token::Term(term) => {
                 let term = pool.get(term);
-                indentln!(f, self, "elif token == {term}:");
+                indentln!(f, self, "elif kind == {}.{term}:", self.token_kind);
             }
             crate::grammar::Token::NonTerm(_) => todo!(),
             crate::grammar::Token::Empty => todo!(),
@@ -309,9 +314,9 @@ impl Visitor for Python {
 
     fn visit_shift(
         &self,
-        ctx: &super::Ctx,
+        _ctx: &super::Ctx,
         f: &mut std::fmt::Formatter,
-        state: crate::generator::Uid,
+        _state: crate::generator::Uid,
         token: crate::grammar::Token,
         next_state: crate::generator::Uid,
     ) -> std::fmt::Result {
@@ -337,10 +342,26 @@ impl Visitor for Python {
         expansion: &[crate::grammar::Token],
     ) -> std::fmt::Result {
         let rule_name = ctx.grammar.pool().get(rule);
-        for (i, token) in expansion.iter().enumerate().rev() {
-            indentln!(f, self, "v{i} =");
+        for (i, _token) in expansion.iter().enumerate().rev() {
+            indentln!(f, self, "v{i} = stack.pop()[2]");
         }
-        todo!()
+        if rule_name == "S0" {
+            indentln!(f, self, "return v0");
+            return Ok(());
+        }
+        let code = ctx
+            .grammar
+            .entries()
+            .iter()
+            .find(|x| x.rule_name() == rule && x.tokens() == expansion)
+            .unwrap()
+            .code();
+        indentln!(f, self, "value = {code}");
+        indentln!(f, self, "before, _, _ = stack[-1]");
+        indentln!(f, self, "goto = goto_{rule_name}(before)");
+        indentln!(f, self, "state = goto");
+        indentln!(f, self, "stack.append((goto, 'todo', value))");
+        Ok(())
     }
 
     fn matching_error(

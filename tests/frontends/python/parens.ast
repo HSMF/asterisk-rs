@@ -1,6 +1,7 @@
 TARGET = python
 entry = main_rule
 prelude = {
+from tokens import TokenKind
 }
 
 token_kind = TokenKind
@@ -14,7 +15,7 @@ main_rule: { i32 }
 
 prod: { i32 }
   | prod Mul atom { v0 * v2 }
-  | prod Div atom { v0 / v2 }
+  | prod Div atom { v0 // v2 }
   | atom { v0 }
 
 atom: { i32 }

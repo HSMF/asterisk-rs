@@ -16,6 +16,10 @@ fn parens() -> anyhow::Result<()> {
         "./tests/frontends/python/parens.py",
         build.path().join("main.py"),
     )?;
+    std::fs::copy(
+        "./tests/frontends/python/tokens.py",
+        build.path().join("tokens.py"),
+    )?;
     dbg!("hi");
 
     Command::new("python3")
